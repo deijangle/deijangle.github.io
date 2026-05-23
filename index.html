@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Francisco Deijangle</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --navy: #0f1e38;
+      --navy-mid: #1a3257;
+      --gold: #b08d5a;
+      --gold-light: #d4ae7a;
+      --cream: #f7f3ee;
+      --cream-dark: #ede8e0;
+      --text: #1a1a1a;
+      --text-muted: #5a5a5a;
+      --border: rgba(176, 141, 90, 0.25);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background-color: var(--cream);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 0 1.5rem 4rem;
+    }
+
+    /* ── Language toggle ── */
+    .lang-bar {
+      width: 100%;
+      max-width: 720px;
+      display: flex;
+      justify-content: flex-end;
+      padding: 1.5rem 0 0;
+      gap: 6px;
+    }
+    .lang-btn {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text-muted);
+      padding: 5px 13px;
+      border-radius: 2px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .lang-btn:hover { border-color: var(--gold); color: var(--gold); }
+    .lang-btn.active { background: var(--navy); color: var(--cream); border-color: var(--navy); }
+
+    /* ── Card ── */
+    .card {
+      width: 100%;
+      max-width: 720px;
+      background: #fff;
+      border: 1px solid var(--cream-dark);
+      border-top: 3px solid var(--navy);
+      padding: 3.5rem 3.5rem 3rem;
+      margin-top: 1.5rem;
+      position: relative;
+    }
+
+    /* ── Header ── */
+    .header {
+      display: flex;
+      align-items: flex-start;
+      gap: 2rem;
+      padding-bottom: 2rem;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 2rem;
+    }
+    .monogram {
+      flex-shrink: 0;
+      width: 72px;
+      height: 72px;
+      background: var(--navy);
+      color: var(--gold-light);
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 26px;
+      font-weight: 300;
+      letter-spacing: 0.05em;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 2px;
+    }
+    .header-text { flex: 1; }
+    .site-label {
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 6px;
+    }
+    h1 {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 2.6rem;
+      font-weight: 400;
+      line-height: 1.1;
+      color: var(--navy);
+      letter-spacing: -0.01em;
+    }
+    .title-line {
+      font-size: 12px;
+      font-weight: 400;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-top: 0.6rem;
+    }
+
+    /* ── Bio ── */
+    .bio {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.2rem;
+      font-weight: 400;
+      font-style: italic;
+      line-height: 1.8;
+      color: #3a3a3a;
+      margin-bottom: 2.5rem;
+      padding-left: 1.25rem;
+      border-left: 2px solid var(--gold);
+    }
+
+    /* ── Contact section ── */
+    .section-label {
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 1rem;
+    }
+    .contacts {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    @media (max-width: 520px) {
+      .contacts { grid-template-columns: 1fr; }
+      .card { padding: 2rem 1.5rem; }
+      h1 { font-size: 2rem; }
+      .header { flex-direction: column; gap: 1rem; }
+    }
+
+    .contact-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 14px;
+      border: 1px solid var(--cream-dark);
+      text-decoration: none;
+      color: var(--text);
+      transition: all 0.2s;
+      background: var(--cream);
+    }
+    .contact-item:hover {
+      border-color: var(--navy);
+      background: #fff;
+    }
+    .contact-item:hover .ci-label { color: var(--navy); }
+    .ci-icon {
+      flex-shrink: 0;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .ci-icon svg { width: 18px; height: 18px; }
+    .ci-text { flex: 1; min-width: 0; }
+    .ci-type {
+      font-size: 9px;
+      font-weight: 500;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 2px;
+    }
+    .ci-label {
+      font-size: 13px;
+      font-weight: 400;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      transition: color 0.2s;
+    }
+
+    /* ── Footer ── */
+    .footer {
+      width: 100%;
+      max-width: 720px;
+      text-align: center;
+      padding-top: 1.5rem;
+      font-size: 11px;
+      color: var(--text-muted);
+      letter-spacing: 0.04em;
+    }
+
+    /* ── Decorative corner ── */
+    .corner {
+      position: absolute;
+      bottom: 1.5rem;
+      right: 1.5rem;
+      width: 28px;
+      height: 28px;
+      border-right: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="lang-bar">
+    <button class="lang-btn active" onclick="setLang('pt')">PT</button>
+    <button class="lang-btn" onclick="setLang('en')">EN</button>
+    <button class="lang-btn" onclick="setLang('es')">ES</button>
+  </div>
+
+  <main class="card" role="main">
+    <div class="corner" aria-hidden="true"></div>
+
+    <header class="header">
+      <div class="monogram" aria-hidden="true">FD</div>
+      <div class="header-text">
+        <p class="site-label">deijangle.com</p>
+        <h1>Francisco Deijangle</h1>
+        <p class="title-line" id="title-line">Professor · Engenheiro · Especialista em Transformação Digital</p>
+      </div>
+    </header>
+
+    <p class="bio" id="bio">
+      Professor, Engenheiro de Controle e Automação e Especialista em Transformação Digital, PMO, Gestão de Projetos e Indústria 4.0, unindo experiência acadêmica e sólida atuação prática na indústria em projetos de automação, inovação e digitalização empresarial.
+    </p>
+
+    <p class="section-label" id="contact-label">Contato &amp; Perfis</p>
+
+    <div class="contacts">
+
+      <a class="contact-item" href="http://www.deijangle.com" target="_blank" rel="noopener">
+        <div class="ci-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--navy)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20M12 2a14.5 14.5 0 0 1 0 20M2 12h20"/>
+          </svg>
+        </div>
+        <div class="ci-text">
+          <div class="ci-type" id="site-type">Website</div>
+          <div class="ci-label">www.deijangle.com</div>
+        </div>
+      </a>
+
+      <a class="contact-item" href="mailto:francisco@deijangle.com">
+        <div class="ci-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--navy)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 7 10-7"/>
+          </svg>
+        </div>
+        <div class="ci-text">
+          <div class="ci-type">E-mail</div>
+          <div class="ci-label">francisco@deijangle.com</div>
+        </div>
+      </a>
+
+      <a class="contact-item" href="https://www.linkedin.com/in/deijangle/" target="_blank" rel="noopener">
+        <div class="ci-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--navy)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/>
+          </svg>
+        </div>
+        <div class="ci-text">
+          <div class="ci-type">LinkedIn</div>
+          <div class="ci-label">in/deijangle</div>
+        </div>
+      </a>
+
+      <a class="contact-item" href="https://orcid.org/0009-0005-9432-5328" target="_blank" rel="noopener">
+        <div class="ci-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--navy)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/><path d="M8 12h8M12 8v8"/>
+            <circle cx="9" cy="9" r="0.5" fill="var(--navy)"/>
+          </svg>
+        </div>
+        <div class="ci-text">
+          <div class="ci-type">ORCID</div>
+          <div class="ci-label">0009-0005-9432-5328</div>
+        </div>
+      </a>
+
+      <a class="contact-item" href="https://wwws.cnpq.br/cvlattesweb/PKG_MENU.menu?f_cod=5984E339EB1246F6EF795E0FE5A6277E#" target="_blank" rel="noopener" style="grid-column: 1 / -1;">
+        <div class="ci-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--navy)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
+          </svg>
+        </div>
+        <div class="ci-text">
+          <div class="ci-type" id="lattes-type">Currículo Lattes — CNPq</div>
+          <div class="ci-label" id="lattes-label">Acessar currículo na Plataforma Lattes</div>
+        </div>
+      </a>
+
+    </div>
+  </main>
+
+  <footer class="footer">
+    <p id="footer-text">© 2025 Francisco Deijangle · deijangle.com</p>
+  </footer>
+
+  <script>
+    const i18n = {
+      pt: {
+        titleLine: 'Professor · Engenheiro · Especialista em Transformação Digital',
+        bio: 'Professor, Engenheiro de Controle e Automação e Especialista em Transformação Digital, PMO, Gestão de Projetos e Indústria 4.0, unindo experiência acadêmica e sólida atuação prática na indústria em projetos de automação, inovação e digitalização empresarial.',
+        contactLabel: 'Contato &amp; Perfis',
+        siteType: 'Website',
+        lattesType: 'Currículo Lattes — CNPq',
+        lattesLabel: 'Acessar currículo na Plataforma Lattes',
+        footer: '© 2025 Francisco Deijangle · deijangle.com',
+        htmlLang: 'pt-BR'
+      },
+      en: {
+        titleLine: 'Professor · Engineer · Digital Transformation Specialist',
+        bio: 'Professor, Control and Automation Engineer, and specialist in Digital Transformation, PMO, Project Management, and Industry 4.0 — combining academic experience with solid hands-on industry practice in automation, innovation, and enterprise digitalization projects.',
+        contactLabel: 'Contact &amp; Profiles',
+        siteType: 'Website',
+        lattesType: 'Lattes Curriculum — CNPq',
+        lattesLabel: 'View curriculum on the Lattes Platform',
+        footer: '© 2025 Francisco Deijangle · deijangle.com',
+        htmlLang: 'en'
+      },
+      es: {
+        titleLine: 'Profesor · Ingeniero · Especialista en Transformación Digital',
+        bio: 'Profesor, Ingeniero de Control y Automatización y Especialista en Transformación Digital, PMO, Gestión de Proyectos e Industria 4.0, combinando experiencia académica con sólida actuación práctica en la industria en proyectos de automatización, innovación y digitalización empresarial.',
+        contactLabel: 'Contacto y Perfiles',
+        siteType: 'Sitio web',
+        lattesType: 'Currículum Lattes — CNPq',
+        lattesLabel: 'Acceder al currículum en la Plataforma Lattes',
+        footer: '© 2025 Francisco Deijangle · deijangle.com',
+        htmlLang: 'es'
+      }
+    };
+
+    function setLang(lang) {
+      const t = i18n[lang];
+      document.getElementById('title-line').textContent = t.titleLine;
+      document.getElementById('bio').textContent = t.bio;
+      document.getElementById('contact-label').innerHTML = t.contactLabel;
+      document.getElementById('site-type').textContent = t.siteType;
+      document.getElementById('lattes-type').textContent = t.lattesType;
+      document.getElementById('lattes-label').textContent = t.lattesLabel;
+      document.getElementById('footer-text').textContent = t.footer;
+      document.documentElement.lang = t.htmlLang;
+      document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.lang-btn').forEach(b => { if (b.textContent === lang.toUpperCase()) b.classList.add('active'); });
+    }
+  </script>
+
+</body>
+</html>
