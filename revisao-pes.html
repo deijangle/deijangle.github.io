@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Revisão — Projeto e Engenharia de Software</title>
+<style>
+  :root {
+    --bg: #f4f5f7; --card: #ffffff; --ink: #1c2330; --muted: #5b6575;
+    --line: #d9dde4; --accent: #1f4e8c; --accent-ink: #ffffff;
+    --ok: #17703b; --ok-bg: #e5f4ea; --bad: #a32020; --bad-bg: #fbe9e9;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12161d; --card: #1b212b; --ink: #e8ebf0; --muted: #9aa5b5;
+      --line: #313a48; --accent: #6ea4e8; --accent-ink: #0d1117;
+      --ok: #6fd094; --ok-bg: #173224; --bad: #f08a8a; --bad-bg: #3a1c1c;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 16px/1.55 Georgia, "Times New Roman", serif;
+  }
+  main { max-width: 780px; margin: 0 auto; padding: 24px 16px 64px; }
+  header h1 { font-size: 1.35rem; margin: 0 0 2px; letter-spacing: .01em; }
+  header p { margin: 0; color: var(--muted); font-size: .95rem; }
+  header { border-bottom: 2px solid var(--accent); padding-bottom: 12px; margin-bottom: 20px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 20px; }
+  label.field { display: block; margin: 14px 0 4px; font-weight: bold; font-size: .95rem; }
+  input[type=text] {
+    width: 100%; padding: 10px 12px; font: inherit; color: var(--ink);
+    background: var(--bg); border: 1px solid var(--line); border-radius: 6px;
+  }
+  button {
+    font: inherit; font-weight: bold; padding: 10px 18px; border-radius: 6px; cursor: pointer;
+    border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink);
+  }
+  button.sec { background: transparent; color: var(--accent); }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+  .meta { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 6px;
+          color: var(--muted); font-size: .9rem; margin-bottom: 10px; }
+  .bar { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; margin-bottom: 16px; }
+  .bar div { height: 100%; background: var(--accent); }
+  .tema { font-size: .82rem; text-transform: uppercase; letter-spacing: .06em; color: var(--accent); font-weight: bold; }
+  .enun { margin: 8px 0 16px; }
+  .enun p { margin: 0 0 10px; }
+  .opt { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; margin: 8px 0;
+         border: 1px solid var(--line); border-radius: 6px; cursor: pointer; }
+  .opt input { margin-top: 5px; }
+  .opt.errada { opacity: .55; text-decoration: line-through; cursor: not-allowed; }
+  .opt.certa { border-color: var(--ok); background: var(--ok-bg); }
+  .fb { margin-top: 16px; padding: 12px 14px; border-radius: 6px; border-left: 5px solid; }
+  .fb.ok { background: var(--ok-bg); border-color: var(--ok); }
+  .fb.bad { background: var(--bad-bg); border-color: var(--bad); }
+  .fb strong.t { display: block; margin-bottom: 4px; }
+  .fb.ok strong.t { color: var(--ok); } .fb.bad strong.t { color: var(--bad); }
+  .erro { color: var(--bad); font-size: .92rem; margin-top: 8px; min-height: 1.2em; }
+  .score { font-size: 2.4rem; font-weight: bold; color: var(--accent); margin: 6px 0; }
+  .tw { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: .92rem; margin-top: 12px; }
+  th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  td.ok { color: var(--ok); font-weight: bold; } td.bad { color: var(--bad); font-weight: bold; }
+  ul.est { padding-left: 20px; } ul.est li { margin-bottom: 8px; }
+  .nota { color: var(--muted); font-size: .9rem; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Revisão — Projeto e Engenharia de Software</h1>
+    <p>20 questões objetivas sorteadas · alternativas de (a) a (e)</p>
+  </header>
+  <div id="app" class="card"></div>
+</main>
+
+<script>
+/* ============================================================
+   QUESTÕES — para editar, altere apenas este bloco.
+   c = letra da alternativa correta; estudo = orientação exibida
+   ao aluno quando ele erra (não revela a resposta).
+   ============================================================ */
+var DISCIPLINA = "Projeto e Engenharia de Software";
+var QUESTOES = [
+{ tema: "Pilares da Engenharia de Software",
+  enun: ["Uma organização dispõe de profissionais experientes e de ferramentas modernas; contudo, cada desenvolvedor adota práticas próprias. Não há critérios compartilhados para revisão de código, registro de decisões ou teste de funcionalidades, e a ausência de um integrante atrasa as entregas, pois o conhecimento está concentrado nele.",
+         "À luz do modelo dos quatro pilares (Pessoas, Processos, Produtos e Qualidade), o diagnóstico mais adequado é:"],
+  op: ["O pilar Pessoas é deficiente, pois a equipe carece de competência técnica para executar o trabalho.",
+       "O pilar Processos é deficiente, e a ausência de práticas compartilhadas compromete a qualidade e a continuidade do trabalho.",
+       "O pilar Produtos é deficiente, pois as ferramentas adotadas são inadequadas ao tipo de sistema desenvolvido.",
+       "Os quatro pilares estão em equilíbrio, e os atrasos decorrem apenas de fatores externos à equipe.",
+       "O pilar Qualidade é o único afetado, bastando ampliar a etapa de testes ao final do projeto."],
+  c: "b",
+  estudo: "Os quatro pilares (Pessoas, Processos, Produtos e Qualidade) e a interdependência entre eles. Reveja o papel dos processos na padronização do trabalho e na disseminação do conhecimento." },
+
+{ tema: "Pilares da Engenharia de Software",
+  enun: ["Uma fábrica de software obteve certificação de processo e passou a exigir documentação extensa e múltiplas aprovações para qualquer alteração. Desde então, registra alta rotatividade, prazos mais longos e queda na satisfação dos clientes, embora os indicadores de conformidade sejam elevados.",
+         "A interpretação mais consistente com o modelo dos quatro pilares é:"],
+  op: ["A certificação garante a qualidade do produto; logo, a insatisfação dos clientes não tem relação com o processo.",
+       "O problema reside exclusivamente no pilar Pessoas e deve ser resolvido pela substituição dos profissionais.",
+       "A conformidade elevada demonstra equilíbrio entre os pilares, e os efeitos observados são temporários.",
+       "O pilar Processos foi privilegiado em detrimento de Pessoas e Produtos, o que evidencia que o excesso em um pilar também gera desequilíbrio.",
+       "A solução consiste em eliminar integralmente os processos, pois eles são incompatíveis com a produtividade."],
+  c: "d",
+  estudo: "Equilíbrio entre os quatro pilares. Reveja por que o desequilíbrio pode ocorrer tanto pela falta quanto pelo excesso de ênfase em um pilar, e a diferença entre conformidade ao processo e qualidade do produto." },
+
+{ tema: "Pilares da Engenharia de Software",
+  enun: ["Uma startup decidiu acelerar as entregas pressionando a equipe a produzir mais funcionalidades, abandonando deliberadamente os processos e as práticas de qualidade.",
+         "A consequência mais provável, a médio prazo, é:"],
+  op: ["Acúmulo de defeitos e de dívida técnica, com redução progressiva da velocidade de entrega e desgaste da equipe.",
+       "Aumento sustentado da produtividade, pois processos e qualidade apenas retardam o desenvolvimento.",
+       "Melhoria da manutenibilidade, já que o código produzido rapidamente tende a ser mais simples.",
+       "Estabilidade do produto, desde que a equipe seja composta por profissionais experientes.",
+       "Redução dos custos de manutenção, pois menos documentação implica menos artefatos a atualizar."],
+  c: "a",
+  estudo: "Consequências do desequilíbrio entre os pilares. Reveja os conceitos de dívida técnica e de custo da má qualidade, e como a negligência de Processos e Qualidade afeta o Produto e as Pessoas." },
+
+{ tema: "Software como produto de engenharia",
+  enun: ["Na definição clássica da Engenharia de Software, o termo \"software\" designa:"],
+  op: ["Exclusivamente o código-fonte escrito em uma linguagem de programação.",
+       "O código executável instalado no ambiente de produção.",
+       "Os programas, a documentação associada e os dados de configuração necessários ao seu funcionamento.",
+       "O conjunto formado pelo hardware e pelos programas que nele são executados.",
+       "Os programas e os manuais do usuário, sendo a configuração responsabilidade da infraestrutura."],
+  c: "c",
+  estudo: "Definição formal de software: programas, documentação e dados de configuração. Reveja a distinção entre programa e produto de software." },
+
+{ tema: "Software como produto de engenharia",
+  enun: ["Uma equipe desenvolveu um sistema de controle de estoque que opera corretamente no ambiente do programador responsável, mas falha ao ser implantado em outro ambiente.",
+         "O conjunto de informações cuja ausência explica mais diretamente essa falha é:"],
+  op: ["O cronograma do projeto, a ata das reuniões e a lista de participantes.",
+       "O manual do usuário final, o material de treinamento e o plano de marketing.",
+       "O histórico de horas trabalhadas, o orçamento e o contrato com o cliente.",
+       "O diagrama de casos de uso, o glossário e a lista de partes interessadas.",
+       "As versões das dependências, os parâmetros de conexão com o banco de dados e o procedimento de instalação."],
+  c: "e",
+  estudo: "Dados de configuração e documentação de implantação. Reveja quais artefatos tornam um sistema reproduzível em ambientes distintos daquele em que foi desenvolvido." },
+
+{ tema: "Software como produto de engenharia",
+  enun: ["Uma empresa mantém em produção um sistema legado de folha de pagamento cujo único desenvolvedor se aposentou. Há o executável em funcionamento, mas não existe documentação das regras de cálculo nem histórico de configuração. Uma mudança na legislação exige a alteração do sistema.",
+         "O principal risco decorrente dessa situação é:"],
+  op: ["A perda de desempenho do sistema, pois executáveis antigos tornam-se mais lentos com o tempo.",
+       "A evolução do sistema depender de conhecimento não registrado, o que eleva o custo e a probabilidade de erros a cada alteração.",
+       "A impossibilidade de realizar cópias de segurança, pois elas dependem da documentação.",
+       "A obrigatoriedade de reescrever o sistema em outra linguagem de programação.",
+       "A redução da segurança da informação, pois a documentação é o mecanismo que protege os dados."],
+  c: "b",
+  estudo: "Manutenção e sustentação de software. Reveja por que documentação e dados de configuração são condição para a evolução de um sistema e como a concentração de conhecimento em uma pessoa representa risco." },
+
+{ tema: "Definition of Ready e Definition of Done",
+  enun: ["Assinale a alternativa que diferencia corretamente Definition of Ready (DoR) e Definition of Done (DoD)."],
+  op: ["A DoR estabelece as condições para que um item possa ser iniciado; a DoD estabelece as condições para que o trabalho seja considerado concluído.",
+       "A DoR é definida pelo cliente ao final do projeto; a DoD é definida pelo Scrum Master no início de cada Sprint.",
+       "A DoR reúne os critérios de aceitação de cada história; a DoD reúne as regras de negócio do sistema.",
+       "A DoR aplica-se apenas a defeitos; a DoD aplica-se apenas a novas funcionalidades.",
+       "A DoR e a DoD são sinônimos, e o uso de um ou de outro termo depende do framework adotado."],
+  c: "a",
+  estudo: "Acordos de trabalho ágeis: DoR e DoD. Reveja em que momento do fluxo cada acordo atua (entrada do item no desenvolvimento e conclusão do trabalho)." },
+
+{ tema: "Definition of Ready e Definition of Done",
+  enun: ["Uma equipe selecionou para a Sprint a história \"Permitir que o cliente cancele um pedido\". Durante o desenvolvimento, surgiram dúvidas quanto ao prazo admitido para o cancelamento e ao procedimento de estorno.",
+         "Constitui um critério de Definition of Ready que teria evitado esse problema:"],
+  op: ["O código foi revisado por outro desenvolvedor.",
+       "Os testes automatizados foram executados com sucesso.",
+       "A funcionalidade foi implantada no ambiente de homologação.",
+       "O prazo admitido para cancelamento e a regra de estorno estão definidos e validados com o Product Owner.",
+       "A documentação técnica foi atualizada após a implementação."],
+  c: "d",
+  estudo: "Definition of Ready. Reveja quais condições devem estar satisfeitas antes de uma história entrar na Sprint (clareza das regras, critérios de aceitação, dependências) e diferencie-as dos critérios de conclusão." },
+
+{ tema: "Definition of Ready e Definition of Done",
+  enun: ["A história \"Emitir segunda via de boleto\" foi registrada como concluída sem teste de integração com o banco emissor. Posteriormente, os boletos gerados foram rejeitados na compensação.",
+         "A falha descrita está associada principalmente a:"],
+  op: ["Uma Definition of Ready excessivamente rigorosa, que atrasou o início do desenvolvimento.",
+       "Um limite de WIP mal dimensionado na coluna de desenvolvimento.",
+       "Uma Definition of Done inexistente ou não observada, que deveria exigir a verificação da funcionalidade antes de considerá-la concluída.",
+       "Uma falha de elicitação, pois o usuário não solicitou testes.",
+       "Uma decisão legítima da equipe, uma vez que testes de integração não fazem parte do desenvolvimento ágil."],
+  c: "c",
+  estudo: "Definition of Done. Reveja quais verificações caracterizam um trabalho efetivamente concluído e como a DoD atua na prevenção do retrabalho." },
+
+{ tema: "Auto-organização e papéis do Scrum",
+  enun: ["Durante uma Sprint, um desenvolvedor identifica um impedimento técnico que compromete a Meta da Sprint. O Scrum Master determina que ele resolva o problema sozinho e veda a colaboração dos demais, alegando que cada membro deve se ater à tarefa que lhe foi atribuída.",
+         "A avaliação correta dessa conduta é:"],
+  op: ["Adequada, pois a divisão rígida de tarefas preserva a responsabilidade individual prevista no Scrum.",
+       "Adequada, pois compete ao Scrum Master atribuir tarefas e controlar sua execução.",
+       "Inadequada apenas porque o impedimento deveria ter sido encaminhado ao Product Owner para solução.",
+       "Inadequada apenas porque o desenvolvedor deveria ter aguardado a Retrospectiva para relatar o problema.",
+       "Inadequada, pois contraria a auto-organização e a responsabilidade coletiva; cabe ao Scrum Master apoiar a remoção do impedimento, e à equipe, replanejar o trabalho."],
+  c: "e",
+  estudo: "Auto-organização, colaboração e papel do Scrum Master. Reveja a diferença entre liderança servidora e o modelo de comando e controle, e a responsabilidade coletiva pela Meta da Sprint." },
+
+{ tema: "Auto-organização e papéis do Scrum",
+  enun: ["No quinto dia de uma Sprint de dez dias, o Product Owner solicita diretamente a dois desenvolvedores a inclusão de três novos itens urgentes. Os itens são iniciados sem negociação com a equipe e sem a retirada de outros itens. A Meta da Sprint não é atingida.",
+         "O tratamento adequado para a mudança teria sido:"],
+  op: ["Incluir os itens imediatamente, pois o Product Owner tem autoridade para alterar o trabalho em andamento a qualquer momento.",
+       "Negociar o escopo entre o Product Owner e os desenvolvedores, avaliando o impacto sobre a Meta da Sprint antes de qualquer alteração.",
+       "Recusar qualquer alteração, pois o escopo da Sprint é imutável em todas as circunstâncias.",
+       "Transferir a decisão ao Scrum Master, a quem cabe definir as prioridades do produto.",
+       "Estender a duração da Sprint em alguns dias para acomodar os novos itens."],
+  c: "b",
+  estudo: "Papéis do Scrum e proteção da Meta da Sprint. Reveja as responsabilidades do Product Owner, do Scrum Master e dos desenvolvedores e como o escopo pode ser renegociado durante a Sprint." },
+
+{ tema: "Auto-organização e papéis do Scrum",
+  enun: ["Um líder técnico assumiu o papel de Scrum Master e conduz a Daily Scrum da seguinte forma: pergunta individualmente o que cada programador fez, distribui as tarefas do dia conforme sua avaliação pessoal e cobra as horas trabalhadas.",
+         "Segundo o Scrum, a finalidade da Daily Scrum é:"],
+  op: ["Permitir que o Scrum Master distribua as tarefas e acompanhe a produtividade individual.",
+       "Apresentar ao cliente o incremento produzido no dia anterior.",
+       "Registrar as horas trabalhadas para fins de controle gerencial.",
+       "Permitir que os desenvolvedores inspecionem o progresso em direção à Meta da Sprint e adaptem o plano de trabalho.",
+       "Refinar os itens do Product Backlog para as próximas Sprints."],
+  c: "d",
+  estudo: "Eventos do Scrum e auto-organização. Reveja a finalidade da Daily Scrum, a quem ela pertence e por que não se trata de uma reunião de prestação de contas." },
+
+{ tema: "Kanban, WIP e gargalos",
+  enun: ["Em um quadro Kanban, a coluna \"Testes\" tem limite de WIP igual a quatro e está com quatro cartões; duas funcionalidades já desenvolvidas aguardam ingresso nessa etapa. Para manter todos ocupados, o coordenador propõe elevar o limite para dez e iniciar novas funcionalidades.",
+         "O efeito esperado dessa medida, adotada isoladamente, é:"],
+  op: ["Aumento do trabalho em progresso e do tempo de entrega (lead time), sem aumento da capacidade da etapa que restringe o fluxo.",
+       "Aumento proporcional da vazão (throughput), pois mais itens passam a ser testados simultaneamente.",
+       "Eliminação do gargalo, uma vez que o limite deixa de ser atingido.",
+       "Redução do tempo de entrega, pois nenhum integrante permanece ocioso.",
+       "Melhoria da qualidade, pois os testadores passam a ter mais itens para comparar."],
+  c: "a",
+  estudo: "Limites de WIP e gestão de fluxo no Kanban. Reveja a relação entre trabalho em progresso, lead time e throughput, e a diferença entre ocupação de recursos e eficiência de fluxo." },
+
+{ tema: "Kanban, WIP e gargalos",
+  enun: ["O quadro Kanban de uma equipe mostra três tarefas em \"Em Desenvolvimento\" e onze cartões parados em \"Revisão de Código / Testes\". Um programador termina sua tarefa e puxa imediatamente uma nova história do backlog.",
+         "Sob os princípios do método Kanban, a ação mais adequada para esse programador seria:"],
+  op: ["Iniciar duas novas histórias, para compensar o atraso acumulado.",
+       "Aguardar sem atuar até que a coluna de revisão seja esvaziada pelos responsáveis.",
+       "Atuar na revisão e nos testes dos itens acumulados, priorizando a conclusão do trabalho já iniciado.",
+       "Mover os cartões parados diretamente para \"Concluído\", a fim de liberar o fluxo.",
+       "Solicitar o aumento do limite de WIP da coluna de desenvolvimento."],
+  c: "c",
+  estudo: "Sistema puxado e gargalos no Kanban. Reveja o princípio de \"parar de começar e começar a terminar\" e como o acúmulo de itens em uma etapa afeta a vazão de todo o sistema." },
+
+{ tema: "Kanban, WIP e gargalos",
+  enun: ["Em uma equipe, todas as alterações de esquema de banco de dados precisam ser revisadas por um único especialista. A coluna \"Revisão\" permanece constantemente cheia, enquanto os demais desenvolvedores iniciam novas funcionalidades.",
+         "A ação que atua diretamente sobre a causa do gargalo é:"],
+  op: ["Elevar o limite de WIP da coluna \"Revisão\", para que mais cartões possam aguardar.",
+       "Remover a etapa de revisão do fluxo, de modo a reduzir o tempo de entrega.",
+       "Orientar os desenvolvedores a iniciar mais funcionalidades enquanto aguardam.",
+       "Criar uma coluna adicional de espera antes da revisão, para organizar a fila.",
+       "Disseminar o conhecimento por meio de revisão em pares e capacitação, ampliando o número de pessoas aptas a revisar."],
+  c: "e",
+  estudo: "Gargalo por especialização. Reveja como identificar a causa de um gargalo e por que o compartilhamento de conhecimento aumenta a capacidade da etapa restritiva." },
+
+{ tema: "Elicitação e conhecimento tácito",
+  enun: ["Em entrevistas, técnicos de manutenção industrial solicitaram acesso a manuais e registro de serviços. Em visita ao local, o analista constatou que eles usam luvas, atuam em locais com baixa iluminação e enfrentam períodos sem conexão com a internet, condições não mencionadas nas entrevistas.",
+         "A explicação mais adequada para essa omissão é:"],
+  op: ["Os técnicos ocultaram deliberadamente as informações por resistência ao novo sistema.",
+       "As perguntas da entrevista foram redigidas em linguagem excessivamente técnica.",
+       "As condições relatadas são irrelevantes para a especificação de um sistema.",
+       "Trata-se de conhecimento tácito: aspectos tão incorporados à rotina que os usuários não os percebem como relevantes nem os verbalizam.",
+       "As entrevistas foram conduzidas com um número insuficiente de participantes."],
+  c: "d",
+  estudo: "Conhecimento tácito na elicitação de requisitos. Reveja a diferença entre conhecimento explícito e tácito e os limites das técnicas baseadas em relato." },
+
+{ tema: "Elicitação e conhecimento tácito",
+  enun: ["Um sistema para operadores portuários foi especificado com base em questionários e reuniões em sala fechada. Após a implantação, foi rejeitado: os trabalhadores operavam sob ruído intenso e precisavam de confirmações rápidas por comandos físicos.",
+         "A abordagem de elicitação que teria maior probabilidade de revelar essas condições é:"],
+  op: ["Ampliar o questionário com mais perguntas fechadas sobre o ambiente de trabalho.",
+       "Complementar as técnicas declarativas com métodos observacionais, como etnografia ou job shadowing, no ambiente real de trabalho.",
+       "Substituir as reuniões presenciais por entrevistas remotas, mais objetivas.",
+       "Levantar os requisitos exclusivamente com a gerência, que tem visão global da operação.",
+       "Realizar a análise documental dos manuais dos equipamentos existentes."],
+  c: "b",
+  estudo: "Técnicas de elicitação. Reveja as diferenças entre técnicas declarativas (entrevistas, questionários) e observacionais (etnografia, job shadowing) e por que elas se complementam." },
+
+{ tema: "Elicitação e conhecimento tácito",
+  enun: ["Considere novamente os técnicos de manutenção que usam luvas e atuam em locais com baixa iluminação.",
+         "Constitui um requisito não funcional corretamente derivado dessas condições:"],
+  op: ["O sistema deve permitir a consulta aos manuais dos equipamentos.",
+       "O sistema deve registrar os serviços executados por cada técnico.",
+       "A interface deve ser operável com luvas, com áreas de toque ampliadas e alto contraste visual.",
+       "O sistema deve emitir relatório mensal dos serviços realizados.",
+       "O sistema deve ser desenvolvido no prazo de seis meses."],
+  c: "c",
+  estudo: "Requisitos funcionais e não funcionais. Reveja como derivar requisitos a partir do contexto de uso observado e como classificá-los (o que o sistema faz versus com que qualidade o faz)." },
+
+{ tema: "Regra de Negócio, Requisito Funcional e Critério de Aceitação",
+  enun: ["Uma clínica estabelece: \"Consultas podem ser canceladas sem cobrança quando o paciente solicita o cancelamento com antecedência mínima de 24 horas. Quando a antecedência é menor, a clínica cobra uma taxa de R$ 50,00. Pacientes com isenção previamente registrada não pagam essa taxa.\"",
+         "Assinale a alternativa que enuncia uma Regra de Negócio, e não um Requisito Funcional ou um Critério de Aceitação."],
+  op: ["O sistema deve calcular a antecedência do cancelamento e registrar a cobrança da taxa quando aplicável.",
+       "Dado um paciente sem isenção, quando ele cancela com 10 horas de antecedência, então o sistema registra a cobrança de R$ 50,00.",
+       "O sistema deve permitir que o atendente consulte os cancelamentos realizados no mês.",
+       "O sistema deve responder à solicitação de cancelamento em até dois segundos.",
+       "Cancelamentos solicitados com menos de 24 horas de antecedência estão sujeitos à taxa de R$ 50,00, exceto para pacientes com isenção registrada."],
+  c: "e",
+  estudo: "Distinção entre Regra de Negócio, Requisito Funcional e Critério de Aceitação. Reveja por que a regra de negócio pertence à organização e existe independentemente do sistema." },
+
+{ tema: "Regra de Negócio, Requisito Funcional e Critério de Aceitação",
+  enun: ["Ainda sobre a política de cancelamento da clínica, assinale a alternativa que apresenta um Critério de Aceitação corretamente formulado, no formato Dado/Quando/Então, para o paciente com isenção registrada."],
+  op: ["Dado um paciente com isenção registrada e consulta agendada para daqui a 10 horas, quando ele solicita o cancelamento, então o sistema cancela a consulta sem registrar a cobrança da taxa.",
+       "Dado que o sistema deve ser fácil de usar, quando o paciente acessa a tela, então ele fica satisfeito com o atendimento.",
+       "Dado um paciente, quando ele cancela a consulta, então o sistema aplica a política da clínica.",
+       "Pacientes com isenção previamente registrada não pagam a taxa de cancelamento.",
+       "O sistema deve verificar a existência de isenção antes de registrar a cobrança da taxa."],
+  c: "a",
+  estudo: "Critérios de aceitação no formato Dado/Quando/Então. Reveja a estrutura (contexto, ação e resultado observável) e a necessidade de que o critério seja específico e verificável." },
+
+{ tema: "Fundamentos da Engenharia de Software",
+  enun: ["Segundo a definição clássica do IEEE, a Engenharia de Software é a \"aplicação de uma abordagem sistemática, disciplinada e quantificável ao desenvolvimento, operação e manutenção de software\".",
+         "Essa definição permite distinguir a Engenharia de Software da simples atividade de programar porque:"],
+  op: ["Restringe a engenharia à fase de codificação, atribuindo a manutenção a outras áreas.",
+       "Estabelece que a qualidade do software depende essencialmente do talento individual do programador.",
+       "Enfatiza o método e abrange todo o ciclo de vida, incluindo a evolução e a manutenção do sistema por equipes.",
+       "Determina que o software deve ser desenvolvido exclusivamente com modelos sequenciais.",
+       "Dispensa a documentação, desde que o código funcione no momento da entrega."],
+  c: "c",
+  estudo: "Programar versus Engenharia de Software e a definição do IEEE (Aula 1). Reveja o significado de abordagem sistemática, disciplinada e quantificável e por que a engenharia considera evolução, equipe, qualidade e manutenção." },
+
+{ tema: "Fundamentos da Engenharia de Software",
+  enun: ["Em julho de 2024, uma atualização defeituosa de um software de segurança foi distribuída simultaneamente para milhões de computadores no mundo, provocando travamentos em larga escala.",
+         "Entre as práticas de Engenharia de Software, a que atuaria mais diretamente para limitar o alcance dessa falha é:"],
+  op: ["A implantação gradual (rollout progressivo), que permite detectar o defeito em um grupo reduzido antes da distribuição geral.",
+       "A adoção de uma linguagem de programação mais recente para reescrever o produto.",
+       "O aumento do número de programadores envolvidos na atualização.",
+       "A elaboração de um manual do usuário mais detalhado.",
+       "A redução da frequência de reuniões da equipe, para acelerar a entrega."],
+  c: "a",
+  estudo: "Casos de falha de software e controles de engenharia (Aula 1, dinâmica \"Projetos que Deram Errado\"). Reveja, em cada caso, qual decisão ou controle falhou e o que poderia ter evitado o problema." },
+
+{ tema: "Modelos tradicionais de desenvolvimento",
+  enun: ["O modelo Cascata organiza o desenvolvimento em fases sequenciais: requisitos, projeto, implementação, testes e operação.",
+         "Assinale a alternativa que indica corretamente o contexto em que esse modelo é mais adequado e o seu principal risco."],
+  op: ["Adequado a projetos com requisitos voláteis; o principal risco é o excesso de entregas parciais.",
+       "Adequado a produtos inovadores com alta incerteza; o principal risco é a ausência de documentação.",
+       "Adequado a qualquer projeto, por ser universalmente superior; não apresenta riscos relevantes.",
+       "Adequado a projetos que exigem feedback frequente do cliente; o principal risco é o custo da análise de riscos.",
+       "Adequado a requisitos estáveis, contratos formais e ambientes regulados; o principal risco é descobrir tardiamente que o produto correto era outro."],
+  c: "e",
+  estudo: "Modelo Cascata (Aula 2). Reveja os pressupostos de previsibilidade do modelo, quando ele faz sentido e por que o feedback tardio constitui o seu principal risco." },
+
+{ tema: "Modelos tradicionais de desenvolvimento",
+  enun: ["Uma equipe construiu rapidamente um protótipo para validar com os usuários o fluxo de telas de um novo aplicativo. O cliente, satisfeito com a aparência, exigiu que o protótipo fosse colocado em produção imediatamente.",
+         "A situação ilustra o principal risco da Prototipação, que consiste em:"],
+  op: ["Aumentar o custo do projeto pela análise formal de riscos a cada ciclo.",
+       "Confundir aparência de pronto com qualidade de produto final, o que reforça a necessidade de definir previamente se o protótipo será descartável ou evolutivo.",
+       "Impedir a participação dos usuários na validação dos requisitos.",
+       "Exigir que todos os requisitos estejam definidos antes da construção do protótipo.",
+       "Tornar impossível a entrega do sistema em partes."],
+  c: "b",
+  estudo: "Prototipação (Aula 2). Reveja a finalidade do protótipo (reduzir incerteza), a diferença entre protótipo descartável e evolutivo e o risco associado ao modelo." },
+
+{ tema: "Modelos tradicionais de desenvolvimento",
+  enun: ["Uma organização iniciará o desenvolvimento de um sistema de controle embarcado para o setor aeroespacial: projeto grande, inovador, de alta criticidade e com incertezas técnicas relevantes.",
+         "O modelo de ciclo de vida mais aderente a esse contexto, e a respectiva justificativa, é:"],
+  op: ["Cascata, pois dispensa a análise de riscos ao fixar os requisitos no início.",
+       "Prototipação descartável isolada, pois o protótipo pode ser colocado em operação após a validação.",
+       "Incremental, pois elimina a necessidade de arquitetura definida.",
+       "Espiral, pois organiza o trabalho em ciclos guiados pela identificação e pelo tratamento dos riscos, com rigor proporcional à criticidade.",
+       "Nenhum modelo, pois projetos críticos devem ser conduzidos de forma ad hoc."],
+  c: "d",
+  estudo: "Modelo Espiral e critérios de escolha do ciclo de vida (Aula 2). Reveja as quatro atividades de cada ciclo, como o risco define a próxima ação e as cinco perguntas que ajudam a escolher o modelo." },
+
+{ tema: "Maturidade de processos: CMMI e MPS.BR",
+  enun: ["Sobre os modelos de maturidade de processos CMMI e MPS.BR, assinale a alternativa correta."],
+  op: ["Ambos organizam a melhoria de processos em níveis de maturidade; o CMMI é uma referência global, e o MPS.BR, um programa brasileiro coordenado pela Softex, com níveis de G a A.",
+       "O CMMI é um modelo de ciclo de vida que substitui o Cascata; o MPS.BR é uma metodologia ágil brasileira.",
+       "Ambos têm por finalidade ampliar a documentação exigida, independentemente dos objetivos do negócio.",
+       "O MPS.BR possui cinco níveis numerados, e o CMMI, sete níveis identificados por letras.",
+       "A adoção de qualquer um deles garante, por si só, a qualidade do produto entregue."],
+  c: "a",
+  estudo: "Maturidade de processos: CMMI e MPS.BR (Aula 2). Reveja a finalidade de cada modelo, a organização em níveis e a ideia de que orientam evolução, e não burocracia." },
+
+{ tema: "Manifesto Ágil: valores e princípios",
+  enun: ["Para cumprir um prazo, um gerente exige que a equipe trabalhe em regime de horas extras contínuas por vários meses e mede o progresso pela quantidade de documentos produzidos.",
+         "Essa conduta contraria diretamente os seguintes princípios do Manifesto Ágil:"],
+  op: ["Mudanças bem-vindas e conversa face a face.",
+       "Simplicidade e equipes auto-organizáveis.",
+       "Colaboração diária entre negócio e desenvolvimento e entregas frequentes.",
+       "Excelência técnica e inspeção e adaptação.",
+       "Ritmo sustentável e software funcionando como medida primária de progresso."],
+  c: "e",
+  estudo: "Os 12 princípios do Manifesto Ágil. Reveja, em especial, os princípios 7 (software funcionando) e 8 (ritmo sustentável) e como os princípios se agrupam em cliente e valor, pessoas, qualidade e melhoria." },
+
+{ tema: "Eventos do Scrum e empirismo",
+  enun: ["Ao final de uma Sprint, ocorrem dois eventos com finalidades distintas: a Revisão da Sprint (Sprint Review) e a Retrospectiva da Sprint.",
+         "Assinale a alternativa que os diferencia corretamente."],
+  op: ["A Revisão destina-se a planejar as tarefas da próxima Sprint; a Retrospectiva, a estimar o esforço de cada item.",
+       "A Revisão é conduzida diariamente, em 15 minutos; a Retrospectiva ocorre apenas ao final do projeto.",
+       "A Revisão inspeciona o produto, com a demonstração e a validação dos entregáveis; a Retrospectiva inspeciona o processo, registrando lições e melhorias acordadas pela equipe.",
+       "A Revisão avalia o desempenho individual dos desenvolvedores; a Retrospectiva apresenta o produto ao cliente.",
+       "A Revisão e a Retrospectiva têm a mesma finalidade e podem ser substituídas uma pela outra."],
+  c: "c",
+  estudo: "Eventos do Scrum e os pilares do empirismo: transparência, inspeção e adaptação (Aula 3). Reveja a finalidade de cada evento: Planning, Reunião Diária, Review e Retrospectiva." },
+
+{ tema: "Extreme Programming (XP)",
+  enun: ["No Extreme Programming (XP), o Desenvolvimento Orientado a Testes (TDD) segue um ciclo de três etapas.",
+         "A sequência correta e o respectivo significado são:"],
+  op: ["Verde, vermelho e refatorar: implementar o código, verificar se ele falha e reescrevê-lo integralmente.",
+       "Vermelho, verde e refatorar: escrever um teste que falha, criar o mínimo de código para fazê-lo passar e melhorar o código mantendo os testes aprovados.",
+       "Refatorar, verde e vermelho: melhorar o código, implementar a funcionalidade e testar ao final do projeto.",
+       "Vermelho, refatorar e verde: escrever o teste, alterar o teste até que passe e implementar o código.",
+       "Verde, refatorar e vermelho: implementar, melhorar o código e remover os testes que falham."],
+  c: "b",
+  estudo: "Práticas do XP: TDD, programação em pares, integração contínua e refatoração (Aula 4). Reveja o ciclo vermelho-verde-refatorar e o papel do feedback técnico rápido." },
+
+{ tema: "Elicitação e conhecimento tácito",
+  enun: ["Durante uma entrevista de levantamento de requisitos, o cliente afirma: \"Preciso de um botão para aprovar tudo.\"",
+         "A conduta mais adequada do analista é:"],
+  op: ["Registrar imediatamente o requisito funcional \"O sistema deve ter um botão para aprovar tudo\" e encaminhá-lo ao desenvolvimento.",
+       "Rejeitar o pedido, pois cabe ao analista, e não ao cliente, definir as funcionalidades.",
+       "Substituir a entrevista por um questionário, pois o cliente não sabe expressar o que deseja.",
+       "Investigar a necessidade subjacente, questionando quais verificações antecedem a aprovação, quem aprova, em que momento e quais são as exceções.",
+       "Implementar o botão em um protótipo e colocá-lo em produção para avaliar o resultado."],
+  c: "d",
+  estudo: "Entrevista ao cliente e engenharia de requisitos (Aula 4). Reveja por que um pedido não deve ser convertido em solução sem investigação e como registrar necessidades e dúvidas em aberto." }
+];
+
+/* ============================================================
+   LÓGICA DO QUESTIONÁRIO
+   ============================================================ */
+var LETRAS = ["a", "b", "c", "d", "e"];
+/* Cole entre as aspas a "URL do app da Web" gerada pelo Apps Script da planilha (termina em /exec).
+   Com a URL preenchida, o resultado é enviado automaticamente ao professor ao finalizar.
+   Vazia, a página apenas oferece o download do relatório. */
+var URL_ENVIO = "https://script.google.com/macros/s/AKfycbxBus0NaKf5HkAUNwyBRDueFkdj_oo0GJTNuDmWOabpUksFSHd4cKaGIhMHshTp05Tu/exec";
+var SORTEIO = 20; /* quantidade de questões sorteadas do banco para cada aluno */
+var CHAVE = "pes_revisao_v2";
+var CHAVE_N = "pes_revisao_v2_tentativas";
+var app = document.getElementById("app");
+var S = carregar();
+
+function carregar() {
+  try { var t = localStorage.getItem(CHAVE); if (t) return JSON.parse(t); } catch (e) {}
+  return null;
+}
+function salvar() { try { localStorage.setItem(CHAVE, JSON.stringify(S)); } catch (e) {} }
+function numTentativaGeral(incrementar) {
+  var n = 0;
+  try { n = parseInt(localStorage.getItem(CHAVE_N) || "0", 10) || 0; } catch (e) {}
+  if (incrementar) { n++; try { localStorage.setItem(CHAVE_N, String(n)); } catch (e) {} }
+  return n;
+}
+function el(tag, attrs, filhos) {
+  var e = document.createElement(tag);
+  if (attrs) for (var k in attrs) {
+    if (k === "text") e.textContent = attrs[k];
+    else if (k === "onclick") e.onclick = attrs[k];
+    else e.setAttribute(k, attrs[k]);
+  }
+  (filhos || []).forEach(function (f) { if (f) e.appendChild(f); });
+  return e;
+}
+function p2(n) { return (n < 10 ? "0" : "") + n; }
+function fData(ms) { var d = new Date(ms); return p2(d.getDate()) + "/" + p2(d.getMonth() + 1) + "/" + d.getFullYear(); }
+function fHora(ms) { var d = new Date(ms); return p2(d.getHours()) + ":" + p2(d.getMinutes()) + ":" + p2(d.getSeconds()); }
+function fDur(ms) { var s = Math.round(ms / 1000); return p2(Math.floor(s / 3600)) + ":" + p2(Math.floor(s % 3600 / 60)) + ":" + p2(s % 60); }
+function QQ(i) { return QUESTOES[S.ord[i]]; }
+function resolvida(i) { var t = S.q[i]; return t.length > 0 && t[t.length - 1] === QQ(i).c; }
+function acertoPrimeira(i) { return S.q[i][0] === QQ(i).c; }
+function pontos() { var n = 0; for (var i = 0; i < S.ord.length; i++) if (acertoPrimeira(i)) n++; return n; }
+function embaralhar(a) {
+  for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; }
+  return a;
+}
+/* Sorteia SORTEIO questões do banco garantindo que todos os assuntos apareçam,
+   e devolve os índices em ordem aleatória (diferente para cada aluno). */
+function sortear() {
+  var grupos = {}, nomes = [], sel = [];
+  QUESTOES.forEach(function (Q, i) { if (!grupos[Q.tema]) { grupos[Q.tema] = []; nomes.push(Q.tema); } grupos[Q.tema].push(i); });
+  nomes.forEach(function (t) { embaralhar(grupos[t]); });
+  var n = Math.min(SORTEIO, QUESTOES.length);
+  while (sel.length < n) {
+    embaralhar(nomes).forEach(function (t) { if (sel.length < n && grupos[t].length) sel.push(grupos[t].pop()); });
+  }
+  return embaralhar(sel);
+}
+
+function render() {
+  app.innerHTML = "";
+  if (!S) return telaInicio();
+  if (S.fim) return telaFim();
+  telaQuestao();
+  window.scrollTo(0, 0);
+}
+
+function telaInicio() {
+  var nome = el("input", { type: "text", id: "nome", autocomplete: "name", maxlength: "120" });
+  var ra = el("input", { type: "text", id: "ra", inputmode: "numeric", maxlength: "20" });
+  var erro = el("div", { "class": "erro", role: "alert" });
+  app.appendChild(el("p", { text: "Identifique-se para iniciar. O horário de início é registrado ao clicar em \"Iniciar\" e o de término, ao finalizar a última questão." }));
+  app.appendChild(el("label", { "class": "field", "for": "nome", text: "Nome completo" }));
+  app.appendChild(nome);
+  app.appendChild(el("label", { "class": "field", "for": "ra", text: "RA" }));
+  app.appendChild(ra);
+  app.appendChild(erro);
+  app.appendChild(el("p", { "class": "nota", text: "São 20 questões objetivas, sorteadas de um banco de questões e apresentadas em ordem diferente para cada aluno. A pontuação considera os acertos na primeira tentativa. Em caso de erro, você recebe a indicação do assunto a estudar e pode tentar novamente; todas as tentativas são registradas. Ao final, " + (URL_ENVIO ? "o resultado é enviado automaticamente ao professor; mantenha a conexão com a internet." : "é gerado um relatório em arquivo .html que deve ser enviado ao professor.") }));
+  app.appendChild(el("div", { "class": "actions" }, [el("button", { text: "Iniciar", onclick: function () {
+    var n = nome.value.replace(/\s+/g, " ").trim(), r = ra.value.trim();
+    if (n.split(" ").length < 2 || n.length < 5) { erro.textContent = "Informe o nome completo (nome e sobrenome)."; return; }
+    if (r.length < 3) { erro.textContent = "Informe o RA."; return; }
+    var ord = sortear();
+    S = { nome: n, ra: r, inicio: Date.now(), fim: null, idx: 0, geral: numTentativaGeral(true),
+          id: Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 10), envio: null,
+          ord: ord, q: ord.map(function () { return []; }) };
+    salvar(); render();
+  } })]));
+}
+
+function telaQuestao() {
+  var i = S.idx, Q = QQ(i), total = S.ord.length, tent = S.q[i], ok = resolvida(i), ultima = i === total - 1;
+  app.appendChild(el("div", { "class": "meta" }, [
+    el("span", { text: "Questão " + (i + 1) + " de " + total }),
+    el("span", { text: S.nome + " · RA " + S.ra })
+  ]));
+  var barra = el("div", { "class": "bar" }, [el("div")]);
+  barra.firstChild.style.width = (i / total * 100) + "%";
+  app.appendChild(barra);
+  app.appendChild(el("div", { "class": "tema", text: Q.tema }));
+  app.appendChild(el("div", { "class": "enun" }, Q.enun.map(function (t) { return el("p", { text: t }); })));
+
+  var grupo = el("div", { role: "radiogroup" });
+  var btnConf = el("button", { text: "Confirmar resposta" });
+  btnConf.disabled = true;
+  Q.op.forEach(function (texto, k) {
+    var letra = LETRAS[k], jaErrou = tent.indexOf(letra) >= 0 && letra !== Q.c;
+    var inp = el("input", { type: "radio", name: "op", value: letra, id: "op" + k });
+    if (ok || jaErrou) inp.disabled = true;
+    if (ok && letra === Q.c) inp.checked = true;
+    inp.onchange = function () { btnConf.disabled = false; };
+    var cls = "opt" + (jaErrou ? " errada" : "") + (ok && letra === Q.c ? " certa" : "");
+    grupo.appendChild(el("label", { "class": cls, "for": "op" + k }, [inp, el("span", { text: "(" + letra + ") " + texto })]));
+  });
+  app.appendChild(grupo);
+
+  if (ok) {
+    app.appendChild(el("div", { "class": "fb ok", role: "status" }, [
+      el("strong", { "class": "t", text: "Resposta correta." }),
+      el("span", { text: tent.length === 1 ? "Acerto na primeira tentativa." : "Acerto na " + tent.length + "ª tentativa (não pontua, pois houve erro anterior)." })
+    ]));
+  } else if (tent.length > 0) {
+    app.appendChild(el("div", { "class": "fb bad", role: "alert" }, [
+      el("strong", { "class": "t", text: "Resposta incorreta. Tentativas nesta questão: " + tent.length + "." }),
+      el("span", { text: "Assunto para estudar: " + Q.tema + ". " + Q.estudo })
+    ]));
+  }
+
+  btnConf.onclick = function () {
+    var m = grupo.querySelector("input:checked");
+    if (!m) return;
+    tent.push(m.value); salvar(); render();
+  };
+  var avancar = el("button", { "class": ok ? "" : "sec", text: ultima ? "Finalizar questionário" : "Próxima questão", onclick: function () {
+    if (ultima) { S.fim = Date.now(); salvar(); render(); if (!URL_ENVIO) baixarRelatorio(); }
+    else { S.idx++; salvar(); render(); }
+  } });
+  var botoes = [];
+  if (!ok) { btnConf.textContent = tent.length ? "Tentar novamente" : "Confirmar resposta"; botoes.push(btnConf); }
+  if (tent.length > 0) botoes.push(avancar);
+  app.appendChild(el("div", { "class": "actions" }, botoes));
+}
+
+function resultadoTexto(i) {
+  if (acertoPrimeira(i)) return "ACERTOU na 1ª tentativa";
+  if (resolvida(i)) return "ERROU; acertou na " + S.q[i].length + "ª tentativa";
+  return "ERROU; não chegou à resposta correta";
+}
+
+function telaFim() {
+  var pts = pontos(), total = S.ord.length;
+  app.appendChild(el("div", { "class": "tema", text: "Resultado final" }));
+  app.appendChild(el("div", { "class": "score", text: pts + " / " + total + "  (" + Math.round(pts / total * 100) + "%)" }));
+  app.appendChild(el("p", { text: S.nome + " · RA " + S.ra }));
+  app.appendChild(el("p", { "class": "nota", text: "Data: " + fData(S.inicio) + " · Início: " + fHora(S.inicio) + " · Término: " + fHora(S.fim) + " · Duração: " + fDur(S.fim - S.inicio) + " · Realização nº " + S.geral + " neste navegador" }));
+
+  var tb = el("tbody");
+  S.ord.forEach(function (_, i) {
+    var Q = QQ(i), okp = acertoPrimeira(i);
+    tb.appendChild(el("tr", null, [
+      el("td", { text: String(i + 1) }), el("td", { text: Q.tema }),
+      el("td", { text: String(S.q[i].length) }),
+      el("td", { "class": okp ? "ok" : "bad", text: okp ? "Acertou" : (resolvida(i) ? "Errou (acertou depois)" : "Errou") })
+    ]));
+  });
+  app.appendChild(el("div", { "class": "tw" }, [el("table", null, [
+    el("thead", null, [el("tr", null, [el("th", { text: "Nº" }), el("th", { text: "Assunto" }), el("th", { text: "Tentativas" }), el("th", { text: "Resultado" })])]), tb
+  ])]));
+
+  var erradas = S.ord.map(function (_, i) { return i; }).filter(function (i) { return !acertoPrimeira(i); });
+  if (erradas.length) {
+    app.appendChild(el("h3", { text: "Assuntos para estudar" }));
+    app.appendChild(el("ul", { "class": "est" }, erradas.map(function (i) {
+      return el("li", { text: "Questão " + (i + 1) + " — " + QQ(i).tema + ": " + QQ(i).estudo });
+    })));
+  } else {
+    app.appendChild(el("p", { text: "Todas as questões foram respondidas corretamente na primeira tentativa." }));
+  }
+
+  app.appendChild(el("div", { "class": "actions" }, [
+    el("button", { text: "Baixar relatório (.html)", onclick: baixarRelatorio }),
+    el("button", { "class": "sec", text: "Refazer o questionário", onclick: function () {
+      S = null; try { localStorage.removeItem(CHAVE); } catch (e) {} render();
+    } })
+  ]));
+  if (URL_ENVIO) {
+    app.appendChild(el("div", { id: "envio", role: "status" }));
+    app.appendChild(el("p", { "class": "nota", text: "O relatório em .html é apenas o seu comprovante; o resultado válido é o registrado pelo professor." }));
+    statusEnvio();
+    if (S.envio !== "ok") enviar();
+  } else {
+    app.appendChild(el("p", { "class": "nota", text: "Envie o arquivo .html baixado ao professor. Se o download não iniciar automaticamente, use o botão acima." }));
+  }
+}
+
+/* ---------- Envio automático do resultado ao professor ---------- */
+var enviando = false;
+function statusEnvio() {
+  var d = document.getElementById("envio");
+  if (!d) return;
+  d.innerHTML = "";
+  if (S.envio === "ok") {
+    d.className = "fb ok";
+    d.appendChild(el("strong", { "class": "t", text: "Resultado enviado ao professor." }));
+    d.appendChild(el("span", { text: "Registro confirmado. Você já pode fechar esta página." }));
+  } else if (enviando) {
+    d.className = "fb";
+    d.appendChild(el("strong", { "class": "t", text: "Enviando o resultado ao professor…" }));
+    d.appendChild(el("span", { text: "Não feche esta página." }));
+  } else {
+    d.className = "fb bad";
+    d.appendChild(el("strong", { "class": "t", text: "Não foi possível enviar o resultado." }));
+    d.appendChild(el("span", { text: "Verifique a conexão com a internet e tente novamente. Não feche esta página nem refaça o questionário antes de enviar. Se o problema persistir, baixe o relatório e entregue-o ao professor." }));
+    d.appendChild(el("div", { "class": "actions" }, [el("button", { text: "Tentar enviar novamente", onclick: enviar })]));
+  }
+}
+function dadosEnvio() {
+  var pts = pontos(), total = S.ord.length, temas = {}, det = [];
+  S.ord.forEach(function (_, i) {
+    var Q = QQ(i);
+    if (!acertoPrimeira(i)) temas[Q.tema] = (temas[Q.tema] || 0) + 1;
+    det.push("P" + p2(i + 1) + "=Q" + p2(S.ord[i] + 1) + "[" + S.q[i].join(",") + "]" + (acertoPrimeira(i) ? "ok" : (resolvida(i) ? "errou;acertou na " + S.q[i].length + "a" : "errou")));
+  });
+  return {
+    id: S.id, nome: S.nome, ra: S.ra, data: fData(S.inicio),
+    inicio: fData(S.inicio) + " " + fHora(S.inicio), termino: fData(S.fim) + " " + fHora(S.fim),
+    duracao: fDur(S.fim - S.inicio), realizacao: S.geral, pontos: pts, total: total,
+    percentual: Math.round(pts / total * 100) + "%",
+    tentativas: S.q.reduce(function (a, t) { return a + t.length; }, 0),
+    reforcar: Object.keys(temas).map(function (k) { return k + " (" + temas[k] + ")"; }).join("; ") || "Nenhum",
+    detalhe: det.join(" | "), codigo: codigoVerificacao()
+  };
+}
+function enviar() {
+  if (enviando || !URL_ENVIO || S.envio === "ok") return;
+  enviando = true; statusEnvio();
+  /* text/plain evita a verificação prévia (preflight) que o Apps Script não atende. */
+  fetch(URL_ENVIO, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(dadosEnvio()), redirect: "follow" })
+    .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+    .then(function (j) { if (!j || !j.ok) throw new Error((j && j.erro) || "resposta inválida"); S.envio = "ok"; salvar(); })
+    .catch(function () { S.envio = "erro"; salvar(); })
+    .then(function () { enviando = false; statusEnvio(); });
+}
+function codigoVerificacao() {
+  var base = [S.nome, S.ra, S.inicio, S.fim, S.geral, pontos(), S.ord.join("."), S.q.map(function (t) { return t.join(""); }).join("|")].join("#");
+  return hash("PES#" + base) + "-" + hash(base + "#UNA");
+}
+
+function hash(str) {
+  var h = 2166136261;
+  for (var i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return ("0000000" + (h >>> 0).toString(16)).slice(-8).toUpperCase();
+}
+
+function esc(t) { return String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
+
+function gerarRelatorio() {
+  var pts = pontos(), total = S.ord.length;
+  var tentTotal = S.q.reduce(function (a, t) { return a + t.length; }, 0);
+  var codigo = codigoVerificacao();
+  var linhas = "", temas = {};
+  S.ord.forEach(function (_, i) {
+    var Q = QQ(i), okp = acertoPrimeira(i);
+    if (!okp) temas[Q.tema] = (temas[Q.tema] || 0) + 1;
+    linhas += "<tr><td>" + (i + 1) + "</td><td>Q" + p2(S.ord[i] + 1) + "</td><td>" + esc(Q.tema) + "</td><td>" + S.q[i].length +
+      "</td><td>" + esc(S.q[i].join(", ") || "-") + "</td><td>" + Q.c + "</td><td class='" + (okp ? "ok" : "bad") + "'>" + esc(resultadoTexto(i)) + "</td></tr>";
+  });
+  var ks = Object.keys(temas);
+  var reforco = ks.length ? "<ul>" + ks.map(function (k) { return "<li>" + esc(k) + " — " + temas[k] + " questão(ões) com erro</li>"; }).join("") + "</ul>" : "<p>Nenhum.</p>";
+  function dado(r, v) { return "<tr><th>" + r + "</th><td>" + esc(v) + "</td></tr>"; }
+  return "<!DOCTYPE html>\n<html lang='pt-BR'><head><meta charset='UTF-8'><meta name='viewport' content='width=device-width, initial-scale=1'>" +
+    "<title>Relatório — " + esc(S.nome) + " — RA " + esc(S.ra) + "</title><style>" +
+    "body{font:15px/1.5 Georgia,'Times New Roman',serif;color:#1c2330;background:#fff;max-width:900px;margin:0 auto;padding:24px 16px}" +
+    "h1{font-size:1.3rem;border-bottom:2px solid #1f4e8c;padding-bottom:8px}h2{font-size:1.05rem;margin-top:26px}" +
+    "table{border-collapse:collapse;width:100%}th,td{text-align:left;padding:6px 8px;border-bottom:1px solid #d9dde4;vertical-align:top}" +
+    "table.d th{width:190px}.nota{font-size:1.8rem;font-weight:bold;color:#1f4e8c}.ok{color:#17703b;font-weight:bold}.bad{color:#a32020;font-weight:bold}" +
+    ".w{overflow-x:auto}.cod{font-family:monospace;color:#5b6575;margin-top:24px}@media print{body{padding:0}}" +
+    "</style></head><body>" +
+    "<h1>Relatório de Revisão — " + esc(DISCIPLINA) + "</h1>" +
+    "<p class='nota'>" + pts + " / " + total + " (" + Math.round(pts / total * 100) + "%)</p>" +
+    "<table class='d'>" +
+    dado("Nome completo", S.nome) + dado("RA", S.ra) + dado("Data", fData(S.inicio)) +
+    dado("Início", fData(S.inicio) + " " + fHora(S.inicio)) + dado("Término", fData(S.fim) + " " + fHora(S.fim)) +
+    dado("Duração", fDur(S.fim - S.inicio)) + dado("Realização nº", S.geral + " (neste navegador)") +
+    dado("Pontuação", pts + " / " + total + " — acertos na 1ª tentativa") +
+    dado("Total de tentativas", tentTotal + " (em " + total + " questões)") +
+    dado("Questões sorteadas", total + " de " + QUESTOES.length + " do banco, em ordem aleatória") +
+    "</table>" +
+    "<h2>Detalhamento por questão</h2>" +
+    "<div class='w'><table><thead><tr><th>Posição</th><th>Banco</th><th>Assunto</th><th>Tentativas</th><th>Respostas</th><th>Gabarito</th><th>Resultado</th></tr></thead><tbody>" +
+    linhas + "</tbody></table></div>" +
+    "<p><small>Posição = ordem em que a questão apareceu para o aluno; Banco = número da questão no banco.</small></p>" +
+    "<h2>Assuntos a reforçar</h2>" + reforco +
+    "<p class='cod'>Código de verificação: " + codigo + "</p></body></html>";
+}
+
+function baixarRelatorio() {
+  var blob = new Blob([gerarRelatorio()], { type: "text/html;charset=utf-8" });
+  var a = document.createElement("a");
+  var nome = S.nome.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^A-Za-z0-9]+/g, "_");
+  a.href = URL.createObjectURL(blob);
+  a.download = "PES_revisao_RA" + S.ra.replace(/[^A-Za-z0-9]+/g, "") + "_" + nome + ".html";
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
+}
+
+render();
+</script>
+</body>
+</html>
