@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Revisão — Sistemas Automatizados</title>
+<style>
+  :root {
+    --bg: #f4f5f7; --card: #ffffff; --ink: #1c2330; --muted: #5b6575;
+    --line: #d9dde4; --accent: #1f4e8c; --accent-ink: #ffffff;
+    --ok: #17703b; --ok-bg: #e5f4ea; --bad: #a32020; --bad-bg: #fbe9e9;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12161d; --card: #1b212b; --ink: #e8ebf0; --muted: #9aa5b5;
+      --line: #313a48; --accent: #6ea4e8; --accent-ink: #0d1117;
+      --ok: #6fd094; --ok-bg: #173224; --bad: #f08a8a; --bad-bg: #3a1c1c;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 16px/1.55 Georgia, "Times New Roman", serif;
+  }
+  main { max-width: 780px; margin: 0 auto; padding: 24px 16px 64px; }
+  header h1 { font-size: 1.35rem; margin: 0 0 2px; letter-spacing: .01em; }
+  header p { margin: 0; color: var(--muted); font-size: .95rem; }
+  header { border-bottom: 2px solid var(--accent); padding-bottom: 12px; margin-bottom: 20px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 20px; }
+  label.field { display: block; margin: 14px 0 4px; font-weight: bold; font-size: .95rem; }
+  input[type=text] {
+    width: 100%; padding: 10px 12px; font: inherit; color: var(--ink);
+    background: var(--bg); border: 1px solid var(--line); border-radius: 6px;
+  }
+  button {
+    font: inherit; font-weight: bold; padding: 10px 18px; border-radius: 6px; cursor: pointer;
+    border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink);
+  }
+  button.sec { background: transparent; color: var(--accent); }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+  .meta { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 6px;
+          color: var(--muted); font-size: .9rem; margin-bottom: 10px; }
+  .bar { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; margin-bottom: 16px; }
+  .bar div { height: 100%; background: var(--accent); }
+  .tema { font-size: .82rem; text-transform: uppercase; letter-spacing: .06em; color: var(--accent); font-weight: bold; }
+  .enun { margin: 8px 0 16px; }
+  .enun p { margin: 0 0 10px; }
+  .opt { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; margin: 8px 0;
+         border: 1px solid var(--line); border-radius: 6px; cursor: pointer; }
+  .opt input { margin-top: 5px; }
+  .opt.errada { opacity: .55; text-decoration: line-through; cursor: not-allowed; }
+  .opt.certa { border-color: var(--ok); background: var(--ok-bg); }
+  .fb { margin-top: 16px; padding: 12px 14px; border-radius: 6px; border-left: 5px solid; }
+  .fb.ok { background: var(--ok-bg); border-color: var(--ok); }
+  .fb.bad { background: var(--bad-bg); border-color: var(--bad); }
+  .fb strong.t { display: block; margin-bottom: 4px; }
+  .fb.ok strong.t { color: var(--ok); } .fb.bad strong.t { color: var(--bad); }
+  .erro { color: var(--bad); font-size: .92rem; margin-top: 8px; min-height: 1.2em; }
+  .score { font-size: 2.4rem; font-weight: bold; color: var(--accent); margin: 6px 0; }
+  .tw { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: .92rem; margin-top: 12px; }
+  th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  td.ok { color: var(--ok); font-weight: bold; } td.bad { color: var(--bad); font-weight: bold; }
+  ul.est { padding-left: 20px; } ul.est li { margin-bottom: 8px; }
+  .nota { color: var(--muted); font-size: .9rem; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Revisão — Sistemas Automatizados</h1>
+    <p>20 questões objetivas sorteadas · alternativas de (a) a (e)</p>
+  </header>
+  <div id="app" class="card"></div>
+</main>
+
+<script>
+/* ============================================================
+   QUESTÕES — para editar, altere apenas este bloco.
+   c = letra da alternativa correta; estudo = orientação exibida
+   ao aluno quando ele erra (não revela a resposta).
+   ============================================================ */
+var DISCIPLINA = "Sistemas Automatizados";
+var SIGLA = "SA"; /* identifica a disciplina no envio e define a aba da planilha */
+var QUESTOES = [
+{ tema: "Fundamentos de automação e Indústria 4.0",
+  enun: ["Em um portão automático de garagem, uma fotocélula detecta a presença de um veículo, uma placa eletrônica decide abrir ou fechar e um motor movimenta a folha do portão.", "A correspondência correta entre esses componentes e os três elementos de um sistema automatizado é:"],
+  op: ["Fotocélula: atuador; placa eletrônica: sensor; motor: controlador do sistema.",
+       "Fotocélula: controlador; placa eletrônica: atuador; motor: sensor de posição.",
+       "Fotocélula: sensor; placa eletrônica: controlador; motor: atuador do sistema.",
+       "Fotocélula: sensor; placa eletrônica: atuador; motor: controlador do sistema.",
+       "Fotocélula: atuador; placa eletrônica: controlador; motor: sensor de posição."],
+  c: "c",
+  estudo: "Os três elementos de um sistema automatizado: sensor, controlador e atuador (Aula 1). Reveja a função de cada um e pratique com os exemplos da dinâmica: portão, semáforo, elevador e máquina de café." },
+
+{ tema: "Fundamentos de automação e Indústria 4.0",
+  enun: ["Uma indústria utiliza um sistema SCADA para acompanhar o processo, emitir alarmes e gerar relatórios de produção.", "Nos quatro níveis de um sistema de automação, esse sistema pertence ao:"],
+  op: ["Nível 2, de supervisão, situado entre o controle lógico e os sistemas corporativos.",
+       "Nível 0, de chão de fábrica, no qual operam os motores, os sensores e os atuadores.",
+       "Nível 1, de controle lógico, no qual os CLPs e as IHMs executam a lógica do processo.",
+       "Nível 3, de sistemas corporativos, responsável por ERP, estoque e rastreabilidade.",
+       "Nível 1, de controle lógico, pois todo software industrial é executado pelo próprio CLP."],
+  c: "a",
+  estudo: "Os quatro níveis de um sistema de automação, de N0 a N3 (Aula 1). Reveja o que pertence a cada nível: chão de fábrica, controle lógico, supervisão e sistemas corporativos." },
+
+{ tema: "Fundamentos de automação e Indústria 4.0",
+  enun: ["A introdução da eletrônica, da tecnologia da informação e dos primeiros CLPs nas fábricas caracteriza qual etapa da evolução industrial?"],
+  op: ["A 1ª Revolução Industrial, marcada pela mecanização e pela máquina a vapor.",
+       "A 2ª Revolução Industrial, marcada pela eletricidade e pelas linhas de montagem.",
+       "A 4ª Revolução Industrial, marcada pela IoT e pelos sistemas ciberfísicos.",
+       "A 2ª Revolução Industrial, marcada pelos servomecanismos e pela produção em série.",
+       "A 3ª Revolução Industrial, iniciada por volta de 1970 com a automação eletrônica."],
+  c: "e",
+  estudo: "Da 1ª à 4ª Revolução Industrial e os marcos da automação (Aula 1). Reveja a tecnologia que caracteriza cada revolução e a época aproximada de cada uma." },
+
+{ tema: "Fundamentos de automação e Indústria 4.0",
+  enun: ["Uma empresa mantém uma réplica virtual de sua linha de envase, atualizada continuamente com os dados dos sensores, para simular ajustes antes de aplicá-los ao equipamento real.", "A tecnologia habilitadora da Indústria 4.0 descrita é:"],
+  op: ["A manufatura aditiva, que produz peças por impressão 3D a partir de um modelo CAD.",
+       "O gêmeo digital, uma réplica virtual sincronizada com o ativo físico que representa.",
+       "A robótica colaborativa, que permite a interação segura entre robôs e operadores.",
+       "A Internet dos Serviços, que oferece funcionalidades do equipamento como serviço.",
+       "O Big Data em nuvem, que se limita a armazenar remotamente os dados coletados."],
+  c: "b",
+  estudo: "Tecnologias habilitadoras da Indústria 4.0 (Aula 1). Reveja a definição de cada uma: IoT, sistemas ciberfísicos, Big Data e nuvem, manufatura aditiva, gêmeo digital, robótica colaborativa, IA e Internet dos Serviços." },
+
+{ tema: "Fundamentos de automação e Indústria 4.0",
+  enun: ["Ao comparar a automação industrial com a automação de software (RPA), é correto afirmar que:"],
+  op: ["A automação industrial dispensa lógica programada, pois depende apenas de sensores e atuadores.",
+       "A automação de software atua sobre máquinas e processos físicos, por meio de CLPs e válvulas.",
+       "As duas são equivalentes em tudo, inclusive no ambiente de operação e nos dispositivos usados.",
+       "Ambas reduzem a intervenção humana por lógica programada, mas atuam em ambientes distintos.",
+       "O RPA substitui o CLP no chão de fábrica, pois executa a mesma lógica com menor custo."],
+  c: "d",
+  estudo: "Automação industrial × automação de software/RPA (Aula 1). Reveja o quadro comparativo: o que cada uma controla, com que dispositivos, em que ambiente e o que têm em comum." },
+
+{ tema: "Sensores e transdutores",
+  enun: ["Em um tanque de mistura automatizado, a válvula de entrada abre quando o CLP envia o comando de enchimento.", "Na cadeia de automação, essa válvula desempenha a função de:"],
+  op: ["Atuador, pois transforma o comando do controlador em uma ação física no processo.",
+       "Sensor, pois detecta a condição do processo e informa o nível do tanque ao CLP.",
+       "Transdutor, pois converte a grandeza física medida em um sinal elétrico padronizado.",
+       "Controlador, pois decide o momento de abrir com base na lógica programada.",
+       "Transmissor, pois envia ao CLP um sinal proporcional à vazão de entrada do produto."],
+  c: "a",
+  estudo: "Sensor × transdutor × atuador (Aula 2). Reveja a função de cada um na cadeia de medição: perceber o processo, converter a grandeza em sinal e agir sobre o processo." },
+
+{ tema: "Sensores e transdutores",
+  enun: ["Deseja-se confirmar, sem contato físico, a passagem de peças metálicas em uma esteira.", "O sensor mais adequado e a respectiva justificativa são:"],
+  op: ["Chave fim de curso, pois o contato mecânico garante maior vida útil em alta velocidade.",
+       "Termopar, pois a peça metálica altera a temperatura medida no ponto de passagem.",
+       "Célula de carga, pois detecta a presença do metal pela variação do campo elétrico.",
+       "Sensor indutivo, pois detecta metais sem contato e não sofre desgaste mecânico.",
+       "Sensor PT100, pois sua resistência de platina reage à aproximação de objetos metálicos."],
+  c: "d",
+  estudo: "Sensores digitais mais utilizados: fim de curso, indutivo, capacitivo e fotoelétrico (Aula 2). Reveja o princípio de detecção de cada um e a diferença entre sensores com e sem contato." },
+
+{ tema: "Sensores e transdutores",
+  enun: ["É necessário detectar o nível de grãos no interior de um reservatório plástico.", "Entre os sensores digitais estudados, o mais indicado é o:"],
+  op: ["Indutivo, pois seu campo eletromagnético detecta qualquer material sólido ou líquido.",
+       "Capacitivo, pois detecta também materiais não metálicos, como grãos, pós e líquidos.",
+       "Fim de curso, pois o contato mecânico com os grãos dispensa ajuste de sensibilidade.",
+       "Indutivo, pois é o único sensor de proximidade que opera sem contato com o alvo.",
+       "Termopar, pois a variação de temperatura dos grãos indica o nível do reservatório."],
+  c: "b",
+  estudo: "Sensor capacitivo e escolha do sensor conforme o material (Aula 2). Reveja quais materiais cada sensor detecta e os fatores que influenciam a detecção, como sensibilidade e umidade." },
+
+{ tema: "Sensores e transdutores",
+  enun: ["Um projeto precisa (I) saber se há uma caixa na posição de carga e (II) acompanhar a pressão de uma linha entre 0 e 10 bar.", "A classificação correta dos sinais é:"],
+  op: ["I e II são sinais digitais, pois ambos são lidos por entradas do mesmo CLP.",
+       "I é analógico, pois depende do tamanho da caixa; II é digital, pois tem limites fixos.",
+       "I e II são sinais analógicos, pois toda grandeza física varia de forma contínua.",
+       "I é digital, por ser detecção; II é digital, pois o CLP converte o valor em bits.",
+       "I é digital, pois basta detectar; II é analógico, pois é preciso medir uma faixa."],
+  c: "e",
+  estudo: "Sinal digital × sinal analógico (Aula 2). Reveja a pergunta-chave \"preciso apenas detectar ou preciso medir?\" e os exemplos de cada tipo de sinal." },
+
+{ tema: "Sensores e transdutores",
+  enun: ["Sobre as especificações PNP/NPN e NA/NF de um sensor industrial, assinale a alternativa correta."],
+  op: ["PNP e NA são sinônimos: ambos indicam que o contato do sensor está aberto em repouso.",
+       "PNP/NPN define o estado lógico em repouso; NA/NF define o tipo de saída elétrica.",
+       "PNP/NPN define a saída elétrica do sensor; NA/NF define o estado lógico em repouso.",
+       "NPN indica um sensor analógico, enquanto PNP indica um sensor digital de dois estados.",
+       "PNP/NPN indica o material detectável; NA/NF indica o grau de proteção do invólucro."],
+  c: "c",
+  estudo: "Ligação PNP × NPN e contatos NA/NF (Aula 2). Reveja o que cada especificação define e como a saída do sensor determina o comum da entrada do CLP." },
+
+{ tema: "Sinais e variáveis de processo",
+  enun: ["Um transmissor linear de temperatura, com faixa de 0 a 100 °C e saída de 4–20 mA, envia 16 mA ao CLP.", "A temperatura medida é:"],
+  op: ["80 °C, pois 16 mA correspondem a 80% do valor máximo de 20 mA do sinal.",
+       "75 °C, pois 12 mA acima do mínimo equivalem a 75% da faixa útil de 16 mA.",
+       "64 °C, pois cada miliampère equivale a 4 °C contados a partir do zero da escala.",
+       "60 °C, pois a faixa útil do sinal começa em 4 mA e se estende por 20 mA.",
+       "16 °C, pois, em um transmissor linear, a corrente é igual à temperatura medida."],
+  c: "b",
+  estudo: "Sinais padronizados 4–20 mA e conversão para a grandeza medida (Aula 2 e Revisão). Refaça os exemplos: 12 mA em 0–10 bar e 16 mA em 0–100 °C, lembrando que a faixa útil vai de 4 a 20 mA." },
+
+{ tema: "Sinais e variáveis de processo",
+  enun: ["No padrão 4–20 mA, o valor mínimo da faixa é representado por 4 mA, e não por 0 mA.", "A principal vantagem desse \"zero vivo\" é:"],
+  op: ["Reduzir o consumo de energia do transmissor quando a grandeza está no valor mínimo.",
+       "Permitir que o mesmo sinal seja lido por uma entrada digital comum do CLP.",
+       "Dobrar a resolução da medição em relação ao padrão de tensão de 0 a 10 V.",
+       "Eliminar a necessidade de calibração do transmissor ao longo de sua vida útil.",
+       "Distinguir o valor mínimo da medição de falhas como o rompimento do cabo."],
+  c: "e",
+  estudo: "O \"zero vivo\" do padrão 4–20 mA (Aula 2). Reveja o que representam 4 mA, 12 mA e 20 mA e o que acontece com a corrente quando o cabo se rompe." },
+
+{ tema: "Sinais e variáveis de processo",
+  enun: ["Sobre os sensores de temperatura estudados, assinale a alternativa correta."],
+  op: ["O termopar é indicado para altas temperaturas, e o PT100, para maior precisão.",
+       "O PT100 gera uma tensão proporcional à diferença de temperatura entre duas junções.",
+       "O termopar é uma resistência de platina cujo valor varia com a temperatura do processo.",
+       "Ambos são sensores digitais, pois informam apenas se a temperatura passou de um limite.",
+       "O PT100 é indicado para fornos industriais, e o termopar, apenas para laboratórios."],
+  c: "a",
+  estudo: "Sensores analógicos e variáveis de processo: temperatura, pressão, nível e peso (Aula 2). Reveja o princípio e a aplicação típica do termopar e do PT100." },
+
+{ tema: "Sinais e variáveis de processo",
+  enun: ["Ao selecionar um sensor para uma área sujeita a lavagem frequente com jatos de água, o dado de datasheet diretamente relacionado a essa condição é:"],
+  op: ["A frequência de comutação, que indica a velocidade máxima de detecção do sensor.",
+       "A distância nominal de detecção, que define o alcance do sensor em relação ao alvo.",
+       "O tipo de saída PNP ou NPN, que define o comum da entrada digital do CLP.",
+       "O grau IP, que informa a proteção do invólucro contra a entrada de sólidos e de água.",
+       "A tensão de alimentação, que deve ser compatível com a fonte de 24 V do painel."],
+  c: "d",
+  estudo: "Leitura de datasheet (Aula 2). Reveja os dados que evitam a escolha errada: material detectável, distâncias, alimentação e tipo de saída, grau IP, temperatura e frequência de comutação." },
+
+{ tema: "Sistemas discretos e máquinas de estado",
+  enun: ["Considere as frases: (I) \"tanque enchendo\"; (II) \"nível alto detectado\"; (III) \"fechar válvula de entrada\".", "Na modelagem por máquina de estados, elas correspondem, respectivamente, a:"],
+  op: ["Evento, estado e ação.",
+       "Ação, evento e estado.",
+       "Estado, evento e ação.",
+       "Estado, ação e evento.",
+       "Evento, ação e estado."],
+  c: "c",
+  estudo: "Estado × evento × ação (Aula 3). Reveja o minicheck da aula: estado é situação em que o sistema permanece, evento é ocorrência e ação é o que o controlador executa." },
+
+{ tema: "Sistemas discretos e máquinas de estado",
+  enun: ["Diz-se que um sistema discreto possui \"memória\" porque:"],
+  op: ["Armazena em disco o histórico de todas as leituras dos sensores para consulta posterior.",
+       "Sua resposta depende apenas do valor atual das entradas, qualquer que seja o estado.",
+       "Guarda o programa do usuário mesmo quando a alimentação do controlador é desligada.",
+       "Repete sempre a mesma sequência de saídas, independentemente dos eventos ocorridos.",
+       "Sua resposta depende da entrada atual e também do estado em que o sistema se encontra."],
+  c: "e",
+  estudo: "Características dos sistemas discretos: estados, eventos e memória (Aula 3). Reveja por que a mesma entrada pode produzir respostas diferentes conforme o estado atual." },
+
+{ tema: "Sistemas discretos e máquinas de estado",
+  enun: ["Em uma esteira, a regra de transição foi escrita como: botão iniciar [proteção fechada] / ligar motor.", "Se o operador pressionar o botão iniciar com a proteção aberta, o sistema deve:"],
+  op: ["Permanecer no estado atual, pois a condição de guarda não é verdadeira.",
+       "Ligar o motor, pois o evento ocorreu e a ação está diretamente associada a ele.",
+       "Passar ao estado de falha, pois todo evento sem transição gera uma emergência.",
+       "Ligar o motor e, em seguida, verificar se a proteção foi fechada pelo operador.",
+       "Ignorar a guarda, pois a condição só é avaliada quando o motor já está ligado."],
+  c: "a",
+  estudo: "Evento, condição (guarda) e ação: a forma evento [condição] / ação (Aula 3). Reveja a pergunta-chave \"o que aconteceu e o que precisa ser verdadeiro?\"." },
+
+{ tema: "Sistemas discretos e máquinas de estado",
+  enun: ["Na validação de uma máquina de estados, verificou-se que, no estado TRANSPORTANDO, o evento \"sensor de saída\" pode levar tanto a PARADA quanto a LIBERANDO, sem condição que diferencie os dois destinos.", "O critério de validação violado é:"],
+  op: ["A cobertura, pois existe um evento relevante sem resposta no estado atual.",
+       "A segurança, pois a emergência não conduz o sistema a um estado seguro.",
+       "A cobertura, pois o modelo possui mais estados do que o processo exige.",
+       "O determinismo, pois a mesma situação admite mais de um próximo estado.",
+       "A segurança, pois o modelo não prevê o retorno ao estado inicial após o ciclo."],
+  c: "d",
+  estudo: "Validação do modelo: cobertura, determinismo e segurança (Aula 3). Reveja a pergunta que cada teste responde e a regra de que cada transição precisa de um único destino esperado." },
+
+{ tema: "Sistemas discretos e máquinas de estado",
+  enun: ["Um aluno definiu os seguintes estados para um portão automático: FECHADO, LIGAR MOTOR, ABERTO e BOTÃO PRESSIONADO.", "A análise correta desse modelo é:"],
+  op: ["Está correto, pois todo comando e toda ocorrência devem ser representados como estados.",
+       "Mistura conceitos: \"ligar motor\" é ação e \"botão pressionado\" é evento, não estados.",
+       "Está incompleto apenas por não incluir um estado para cada sensor instalado no portão.",
+       "Mistura conceitos: \"fechado\" e \"aberto\" são eventos, pois dependem dos sensores.",
+       "Está correto, desde que cada estado seja ligado aos demais por setas sem rótulo."],
+  c: "b",
+  estudo: "Erros mais comuns na modelagem de máquinas de estado (Aula 3). Reveja como identificar estados: situações estáveis, exclusivas e observáveis em que o sistema pode permanecer." },
+
+{ tema: "GRAFCET: fundamentos",
+  enun: ["Em um GRAFCET, a etapa X0 está inativa e a entrada \"iniciar\", que compõe a receptividade da transição seguinte a X0, vale 1.", "Nessa situação, a transição:"],
+  op: ["Dispara, pois a receptividade verdadeira é condição suficiente para a evolução.",
+       "Dispara no próximo ciclo de varredura, quando X0 é ativada pelo próprio sensor.",
+       "Não dispara, pois a etapa imediatamente anterior à transição precisa estar ativa.",
+       "Não dispara, pois a receptividade deveria valer 0 para autorizar a evolução.",
+       "Dispara e mantém X0 inativa, ativando apenas a etapa seguinte da sequência."],
+  c: "c",
+  estudo: "Regras de evolução do GRAFCET (Aulas 4 e 5). Reveja a tabela \"quando uma transição dispara?\": etapa anterior ativa e receptividade verdadeira, as duas ao mesmo tempo." },
+
+{ tema: "GRAFCET: fundamentos",
+  enun: ["No GRAFCET, a receptividade é:"],
+  op: ["A situação estável em que o processo se encontra em determinado momento.",
+       "O comando executado pelo controlador enquanto a etapa correspondente está ativa.",
+       "A barra que separa graficamente duas etapas consecutivas da sequência.",
+       "A condição lógica associada à transição, que autoriza a passagem de etapa.",
+       "A etapa inicial do diagrama, representada por um quadro de traço duplo."],
+  c: "d",
+  estudo: "Elementos básicos do GRAFCET: etapa, transição, receptividade e ação (Aula 4). Reveja a definição e o símbolo de cada elemento." },
+
+{ tema: "GRAFCET: fundamentos",
+  enun: ["Sobre a relação entre GRAFCET e SFC, é correto afirmar que:"],
+  op: ["O GRAFCET especifica o comportamento (IEC 60848); o SFC estrutura programas de CLP (IEC 61131-3).",
+       "O GRAFCET é uma linguagem de programação textual (IEC 61131-3); o SFC é um protocolo de rede industrial.",
+       "São nomes dados por fabricantes diferentes ao mesmo software de programação de CLPs.",
+       "O SFC especifica o comportamento (IEC 60848); o GRAFCET é um tipo de diagrama Ladder (IEC 61131-3).",
+       "O GRAFCET aplica-se a sistemas contínuos; o SFC, exclusivamente a sistemas discretos."],
+  c: "a",
+  estudo: "GRAFCET × SFC: norma e terminologia (Aula 4). Reveja o que cada termo significa, a norma associada a cada um e por que são usados como sinônimos na prática." },
+
+{ tema: "GRAFCET: fundamentos",
+  enun: ["Uma das razões para modelar a sequência em GRAFCET antes de programar o CLP é que o modelo:"],
+  op: ["Dispensa a realização de testes, pois um diagrama correto garante um programa correto.",
+       "Substitui o programa do CLP, que passa a ser executado diretamente a partir do desenho.",
+       "Elimina a necessidade de sensores, pois as transições passam a depender apenas do tempo.",
+       "Só pode ser lido por programadores, o que protege a lógica contra alterações indevidas.",
+       "Separa a lógica funcional da linguagem do CLP e ajuda a revelar condições inseguras."],
+  c: "e",
+  estudo: "Por que modelar antes de programar (Aula 4). Reveja os quatro benefícios apresentados e o método em cinco passos para construir um GRAFCET." },
+
+{ tema: "GRAFCET: estruturas em OU e em E",
+  enun: ["Após a inspeção, uma peça deve seguir para a embalagem, se aprovada, ou para a rejeição, se reprovada.", "A estrutura de GRAFCET adequada é a:"],
+  op: ["Divergência em E, pois os dois ramos devem ser iniciados ao mesmo tempo.",
+       "Divergência em OU, com uma transição própria e exclusiva em cada ramo.",
+       "Convergência em E, pois a junção deve aguardar a conclusão dos dois ramos.",
+       "Sequência simples, pois aprovação e rejeição ocorrem sempre uma após a outra.",
+       "Divergência em E, representada por uma linha simples após a etapa de inspeção."],
+  c: "b",
+  estudo: "Divergência e convergência em OU: escolha de caminho (Aula 5). Reveja o exemplo da inspeção e a comparação entre as estruturas em OU e em E." },
+
+{ tema: "GRAFCET: estruturas em OU e em E",
+  enun: ["Em uma máquina de café, os botões \"espresso\" e \"cappuccino\" podem ser pressionados ao mesmo tempo, o que habilitaria dois ramos de uma divergência em OU.", "O tratamento adequado é:"],
+  op: ["Substituir a divergência em OU por uma divergência em E, que aceita ramos simultâneos.",
+       "Manter a lógica, pois o GRAFCET escolhe automaticamente o primeiro ramo desenhado.",
+       "Tornar as receptividades exclusivas ou definir prioridade explícita entre os ramos.",
+       "Remover as transições dos ramos, de modo que a escolha seja feita pela etapa seguinte.",
+       "Acrescentar uma barra dupla após os ramos, para que a junção aguarde ambos."],
+  c: "c",
+  estudo: "Seleção em OU sem ambiguidade (Aula 5). Reveja o exemplo \"ramo B = pedido_B E NÃO pedido_A\" e o teste de projeto: existe alguma combinação capaz de habilitar dois ramos?" },
+
+{ tema: "GRAFCET: estruturas em OU e em E",
+  enun: ["Em uma célula de estampagem, dois ramos paralelos posicionam a peça (ramo A) e preparam a ferramenta (ramo B). O ramo A termina primeiro.", "Nessa situação:"],
+  op: ["O ramo A aguarda em sua etapa de espera, e a estampagem só inicia quando B concluir.",
+       "A estampagem inicia imediatamente, pois basta um dos ramos concluir para avançar.",
+       "O ramo B é cancelado, e a ferramenta passa a ser preparada durante a estampagem.",
+       "O processo retorna à etapa inicial, pois os ramos devem terminar no mesmo instante.",
+       "A estampagem inicia se a receptividade for verdadeira, mesmo com o ramo B em execução."],
+  c: "a",
+  estudo: "Convergência em E: sincronização dos ramos paralelos (Aula 5). Reveja o estudo de caso da célula de estampagem e o que ocorre quando apenas uma das etapas de espera está ativa." },
+
+{ tema: "GRAFCET: estruturas em OU e em E",
+  enun: ["No GRAFCET, a barra dupla horizontal identifica:"],
+  op: ["A etapa inicial, que fica ativa quando o controlador é energizado.",
+       "Uma escolha entre caminhos alternativos, dos quais apenas um é percorrido.",
+       "Uma ação memorizada, que permanece ativa após a desativação da etapa.",
+       "O fim do diagrama, a partir do qual a sequência não pode mais evoluir.",
+       "Uma estrutura em E, na qual ramos paralelos se iniciam ou se sincronizam."],
+  c: "e",
+  estudo: "Representação gráfica das estruturas em OU e em E (Aula 5). Reveja o que indicam a linha simples e a barra dupla, na divergência e na convergência." },
+
+{ tema: "CLP: arquitetura e ciclo de varredura",
+  enun: ["Uma fábrica precisa alterar a ordem de acionamento de três motores de uma linha.", "Comparando a lógica a relé com o CLP, é correto afirmar que:"],
+  op: ["Nas duas tecnologias, a mudança exige refazer a fiação do painel de comando.",
+       "No CLP, altera-se o programa, e os contatores de potência tornam-se desnecessários.",
+       "Na lógica a relé, basta alterar o programa; no CLP, é preciso refazer as ligações.",
+       "No CLP, altera-se o programa; contatores e proteções continuam acionando as cargas.",
+       "O CLP não permite alterar a sequência depois de instalado, ao contrário dos relés."],
+  c: "d",
+  estudo: "Por que o CLP substituiu muitos painéis a relé (Aula 5). Reveja o quadro comparativo: mudança de sequência, temporização, diagnóstico, espaço e acionamento de potência." },
+
+{ tema: "CLP: arquitetura e ciclo de varredura",
+  enun: ["No modelo cíclico de varredura do CLP, um sensor muda de estado logo depois da leitura das entradas.", "Essa mudança será percebida pela lógica:"],
+  op: ["Imediatamente, pois o programa consulta o sensor físico a cada instrução executada.",
+       "Na leitura do próximo ciclo, pois o programa usa a imagem registrada no início do scan.",
+       "Somente após a reinicialização do CLP, momento em que a memória imagem é apagada e relida.",
+       "Na atualização das saídas do mesmo ciclo, etapa em que as entradas físicas também são relidas.",
+       "Nunca, pois o CLP só reconhece mudanças que ocorrem durante a leitura das entradas."],
+  c: "b",
+  estudo: "Ciclo de varredura e memória imagem (Aula 5). Reveja a ordem do scan (ler entradas, executar programa, atualizar saídas, repetir) e o exemplo \"scan na prática: sensor e motor\"." },
+
+{ tema: "CLP: arquitetura e ciclo de varredura",
+  enun: ["Em um CLP, um transmissor de temperatura de 4–20 mA e a referência de velocidade enviada a um inversor de frequência devem ser ligados, respectivamente, a:"],
+  op: ["Entrada digital e saída digital.",
+       "Entrada analógica e saída digital.",
+       "Entrada analógica e saída analógica.",
+       "Saída analógica e entrada analógica.",
+       "Entrada digital e saída analógica."],
+  c: "c",
+  estudo: "Entradas, saídas e comunicação do CLP (Aula 5). Reveja a tabela de interfaces: um exemplo e a função de cada tipo de entrada e de saída, digital e analógica." }
+];
+
+/* ============================================================
+   LÓGICA DO QUESTIONÁRIO
+   ============================================================ */
+var LETRAS = ["a", "b", "c", "d", "e"];
+/* Cole entre as aspas a "URL do app da Web" gerada pelo Apps Script da planilha (termina em /exec).
+   Com a URL preenchida, o resultado é enviado automaticamente ao professor ao finalizar.
+   Vazia, a página apenas oferece o download do relatório. */
+var URL_ENVIO = "https://script.google.com/macros/s/AKfycbxBus0NaKf5HkAUNwyBRDueFkdj_oo0GJTNuDmWOabpUksFSHd4cKaGIhMHshTp05Tu/exec";
+var SORTEIO = 20; /* quantidade de questões sorteadas do banco para cada aluno */
+var CHAVE = "sa_revisao_v1";
+var CHAVE_N = "sa_revisao_v1_tentativas";
+var app = document.getElementById("app");
+var S = carregar();
+
+function carregar() {
+  try { var t = localStorage.getItem(CHAVE); if (t) return JSON.parse(t); } catch (e) {}
+  return null;
+}
+function salvar() { try { localStorage.setItem(CHAVE, JSON.stringify(S)); } catch (e) {} }
+function numTentativaGeral(incrementar) {
+  var n = 0;
+  try { n = parseInt(localStorage.getItem(CHAVE_N) || "0", 10) || 0; } catch (e) {}
+  if (incrementar) { n++; try { localStorage.setItem(CHAVE_N, String(n)); } catch (e) {} }
+  return n;
+}
+function el(tag, attrs, filhos) {
+  var e = document.createElement(tag);
+  if (attrs) for (var k in attrs) {
+    if (k === "text") e.textContent = attrs[k];
+    else if (k === "onclick") e.onclick = attrs[k];
+    else e.setAttribute(k, attrs[k]);
+  }
+  (filhos || []).forEach(function (f) { if (f) e.appendChild(f); });
+  return e;
+}
+function p2(n) { return (n < 10 ? "0" : "") + n; }
+function fData(ms) { var d = new Date(ms); return p2(d.getDate()) + "/" + p2(d.getMonth() + 1) + "/" + d.getFullYear(); }
+function fHora(ms) { var d = new Date(ms); return p2(d.getHours()) + ":" + p2(d.getMinutes()) + ":" + p2(d.getSeconds()); }
+function fDur(ms) { var s = Math.round(ms / 1000); return p2(Math.floor(s / 3600)) + ":" + p2(Math.floor(s % 3600 / 60)) + ":" + p2(s % 60); }
+function QQ(i) { return QUESTOES[S.ord[i]]; }
+function resolvida(i) { var t = S.q[i]; return t.length > 0 && t[t.length - 1] === QQ(i).c; }
+function acertoPrimeira(i) { return S.q[i][0] === QQ(i).c; }
+function pontos() { var n = 0; for (var i = 0; i < S.ord.length; i++) if (acertoPrimeira(i)) n++; return n; }
+function embaralhar(a) {
+  for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; }
+  return a;
+}
+/* Sorteia SORTEIO questões do banco garantindo que todos os assuntos apareçam,
+   e devolve os índices em ordem aleatória (diferente para cada aluno). */
+function sortear() {
+  var grupos = {}, nomes = [], sel = [];
+  QUESTOES.forEach(function (Q, i) { if (!grupos[Q.tema]) { grupos[Q.tema] = []; nomes.push(Q.tema); } grupos[Q.tema].push(i); });
+  nomes.forEach(function (t) { embaralhar(grupos[t]); });
+  var n = Math.min(SORTEIO, QUESTOES.length);
+  while (sel.length < n) {
+    embaralhar(nomes).forEach(function (t) { if (sel.length < n && grupos[t].length) sel.push(grupos[t].pop()); });
+  }
+  return embaralhar(sel);
+}
+
+function render() {
+  app.innerHTML = "";
+  if (!S) return telaInicio();
+  if (S.fim) return telaFim();
+  telaQuestao();
+  window.scrollTo(0, 0);
+}
+
+function telaInicio() {
+  var nome = el("input", { type: "text", id: "nome", autocomplete: "name", maxlength: "120" });
+  var ra = el("input", { type: "text", id: "ra", inputmode: "numeric", maxlength: "20" });
+  var erro = el("div", { "class": "erro", role: "alert" });
+  app.appendChild(el("p", { text: "Identifique-se para iniciar. O horário de início é registrado ao clicar em \"Iniciar\" e o de término, ao finalizar a última questão." }));
+  app.appendChild(el("label", { "class": "field", "for": "nome", text: "Nome completo" }));
+  app.appendChild(nome);
+  app.appendChild(el("label", { "class": "field", "for": "ra", text: "RA" }));
+  app.appendChild(ra);
+  app.appendChild(erro);
+  app.appendChild(el("p", { "class": "nota", text: "São 20 questões objetivas, sorteadas de um banco de questões e apresentadas em ordem diferente para cada aluno. A pontuação considera os acertos na primeira tentativa. Em caso de erro, você recebe a indicação do assunto a estudar e pode tentar novamente; todas as tentativas são registradas. Ao final, " + (URL_ENVIO ? "o resultado é enviado automaticamente ao professor; mantenha a conexão com a internet." : "é gerado um relatório em arquivo .html que deve ser enviado ao professor.") }));
+  app.appendChild(el("div", { "class": "actions" }, [el("button", { text: "Iniciar", onclick: function () {
+    var n = nome.value.replace(/\s+/g, " ").trim(), r = ra.value.trim();
+    if (n.split(" ").length < 2 || n.length < 5) { erro.textContent = "Informe o nome completo (nome e sobrenome)."; return; }
+    if (r.length < 3) { erro.textContent = "Informe o RA."; return; }
+    var ord = sortear();
+    S = { nome: n, ra: r, inicio: Date.now(), fim: null, idx: 0, geral: numTentativaGeral(true),
+          id: Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 10), envio: null,
+          ord: ord, q: ord.map(function () { return []; }) };
+    salvar(); render();
+  } })]));
+}
+
+function telaQuestao() {
+  var i = S.idx, Q = QQ(i), total = S.ord.length, tent = S.q[i], ok = resolvida(i), ultima = i === total - 1;
+  app.appendChild(el("div", { "class": "meta" }, [
+    el("span", { text: "Questão " + (i + 1) + " de " + total }),
+    el("span", { text: S.nome + " · RA " + S.ra })
+  ]));
+  var barra = el("div", { "class": "bar" }, [el("div")]);
+  barra.firstChild.style.width = (i / total * 100) + "%";
+  app.appendChild(barra);
+  app.appendChild(el("div", { "class": "tema", text: Q.tema }));
+  app.appendChild(el("div", { "class": "enun" }, Q.enun.map(function (t) { return el("p", { text: t }); })));
+
+  var grupo = el("div", { role: "radiogroup" });
+  var btnConf = el("button", { text: "Confirmar resposta" });
+  btnConf.disabled = true;
+  Q.op.forEach(function (texto, k) {
+    var letra = LETRAS[k], jaErrou = tent.indexOf(letra) >= 0 && letra !== Q.c;
+    var inp = el("input", { type: "radio", name: "op", value: letra, id: "op" + k });
+    if (ok || jaErrou) inp.disabled = true;
+    if (ok && letra === Q.c) inp.checked = true;
+    inp.onchange = function () { btnConf.disabled = false; };
+    var cls = "opt" + (jaErrou ? " errada" : "") + (ok && letra === Q.c ? " certa" : "");
+    grupo.appendChild(el("label", { "class": cls, "for": "op" + k }, [inp, el("span", { text: "(" + letra + ") " + texto })]));
+  });
+  app.appendChild(grupo);
+
+  if (ok) {
+    app.appendChild(el("div", { "class": "fb ok", role: "status" }, [
+      el("strong", { "class": "t", text: "Resposta correta." }),
+      el("span", { text: tent.length === 1 ? "Acerto na primeira tentativa." : "Acerto na " + tent.length + "ª tentativa (não pontua, pois houve erro anterior)." })
+    ]));
+  } else if (tent.length > 0) {
+    app.appendChild(el("div", { "class": "fb bad", role: "alert" }, [
+      el("strong", { "class": "t", text: "Resposta incorreta. Tentativas nesta questão: " + tent.length + "." }),
+      el("span", { text: "Assunto para estudar: " + Q.tema + ". " + Q.estudo })
+    ]));
+  }
+
+  btnConf.onclick = function () {
+    var m = grupo.querySelector("input:checked");
+    if (!m) return;
+    tent.push(m.value); salvar(); render();
+  };
+  var avancar = el("button", { "class": ok ? "" : "sec", text: ultima ? "Finalizar questionário" : "Próxima questão", onclick: function () {
+    if (ultima) { S.fim = Date.now(); salvar(); render(); if (!URL_ENVIO) baixarRelatorio(); }
+    else { S.idx++; salvar(); render(); }
+  } });
+  var botoes = [];
+  if (!ok) { btnConf.textContent = tent.length ? "Tentar novamente" : "Confirmar resposta"; botoes.push(btnConf); }
+  if (tent.length > 0) botoes.push(avancar);
+  app.appendChild(el("div", { "class": "actions" }, botoes));
+}
+
+function resultadoTexto(i) {
+  if (acertoPrimeira(i)) return "ACERTOU na 1ª tentativa";
+  if (resolvida(i)) return "ERROU; acertou na " + S.q[i].length + "ª tentativa";
+  return "ERROU; não chegou à resposta correta";
+}
+
+function telaFim() {
+  var pts = pontos(), total = S.ord.length;
+  app.appendChild(el("div", { "class": "tema", text: "Resultado final" }));
+  app.appendChild(el("div", { "class": "score", text: pts + " / " + total + "  (" + Math.round(pts / total * 100) + "%)" }));
+  app.appendChild(el("p", { text: S.nome + " · RA " + S.ra }));
+  app.appendChild(el("p", { "class": "nota", text: "Data: " + fData(S.inicio) + " · Início: " + fHora(S.inicio) + " · Término: " + fHora(S.fim) + " · Duração: " + fDur(S.fim - S.inicio) + " · Realização nº " + S.geral + " neste navegador" }));
+
+  var tb = el("tbody");
+  S.ord.forEach(function (_, i) {
+    var Q = QQ(i), okp = acertoPrimeira(i);
+    tb.appendChild(el("tr", null, [
+      el("td", { text: String(i + 1) }), el("td", { text: Q.tema }),
+      el("td", { text: String(S.q[i].length) }),
+      el("td", { "class": okp ? "ok" : "bad", text: okp ? "Acertou" : (resolvida(i) ? "Errou (acertou depois)" : "Errou") })
+    ]));
+  });
+  app.appendChild(el("div", { "class": "tw" }, [el("table", null, [
+    el("thead", null, [el("tr", null, [el("th", { text: "Nº" }), el("th", { text: "Assunto" }), el("th", { text: "Tentativas" }), el("th", { text: "Resultado" })])]), tb
+  ])]));
+
+  var erradas = S.ord.map(function (_, i) { return i; }).filter(function (i) { return !acertoPrimeira(i); });
+  if (erradas.length) {
+    app.appendChild(el("h3", { text: "Assuntos para estudar" }));
+    app.appendChild(el("ul", { "class": "est" }, erradas.map(function (i) {
+      return el("li", { text: "Questão " + (i + 1) + " — " + QQ(i).tema + ": " + QQ(i).estudo });
+    })));
+  } else {
+    app.appendChild(el("p", { text: "Todas as questões foram respondidas corretamente na primeira tentativa." }));
+  }
+
+  app.appendChild(el("div", { "class": "actions" }, [
+    el("button", { text: "Baixar relatório (.html)", onclick: baixarRelatorio }),
+    el("button", { "class": "sec", text: "Refazer o questionário", onclick: function () {
+      S = null; try { localStorage.removeItem(CHAVE); } catch (e) {} render();
+    } })
+  ]));
+  if (URL_ENVIO) {
+    app.appendChild(el("div", { id: "envio", role: "status" }));
+    app.appendChild(el("p", { "class": "nota", text: "O relatório em .html é apenas o seu comprovante; o resultado válido é o registrado pelo professor." }));
+    statusEnvio();
+    if (S.envio !== "ok") enviar();
+  } else {
+    app.appendChild(el("p", { "class": "nota", text: "Envie o arquivo .html baixado ao professor. Se o download não iniciar automaticamente, use o botão acima." }));
+  }
+}
+
+/* ---------- Envio automático do resultado ao professor ---------- */
+var enviando = false;
+function statusEnvio() {
+  var d = document.getElementById("envio");
+  if (!d) return;
+  d.innerHTML = "";
+  if (S.envio === "ok") {
+    d.className = "fb ok";
+    d.appendChild(el("strong", { "class": "t", text: "Resultado enviado ao professor." }));
+    d.appendChild(el("span", { text: "Registro confirmado. Você já pode fechar esta página." }));
+  } else if (enviando) {
+    d.className = "fb";
+    d.appendChild(el("strong", { "class": "t", text: "Enviando o resultado ao professor…" }));
+    d.appendChild(el("span", { text: "Não feche esta página." }));
+  } else {
+    d.className = "fb bad";
+    d.appendChild(el("strong", { "class": "t", text: "Não foi possível enviar o resultado." }));
+    d.appendChild(el("span", { text: "Verifique a conexão com a internet e tente novamente. Não feche esta página nem refaça o questionário antes de enviar. Se o problema persistir, baixe o relatório e entregue-o ao professor." }));
+    d.appendChild(el("div", { "class": "actions" }, [el("button", { text: "Tentar enviar novamente", onclick: enviar })]));
+  }
+}
+function dadosEnvio() {
+  var pts = pontos(), total = S.ord.length, temas = {}, det = [];
+  S.ord.forEach(function (_, i) {
+    var Q = QQ(i);
+    if (!acertoPrimeira(i)) temas[Q.tema] = (temas[Q.tema] || 0) + 1;
+    det.push("P" + p2(i + 1) + "=Q" + p2(S.ord[i] + 1) + "[" + S.q[i].join(",") + "]" + (acertoPrimeira(i) ? "ok" : (resolvida(i) ? "errou;acertou na " + S.q[i].length + "a" : "errou")));
+  });
+  return {
+    id: S.id, disciplina: SIGLA, nome: S.nome, ra: S.ra, data: fData(S.inicio),
+    inicio: fData(S.inicio) + " " + fHora(S.inicio), termino: fData(S.fim) + " " + fHora(S.fim),
+    duracao: fDur(S.fim - S.inicio), realizacao: S.geral, pontos: pts, total: total,
+    percentual: Math.round(pts / total * 100) + "%",
+    tentativas: S.q.reduce(function (a, t) { return a + t.length; }, 0),
+    reforcar: Object.keys(temas).map(function (k) { return k + " (" + temas[k] + ")"; }).join("; ") || "Nenhum",
+    detalhe: det.join(" | "), codigo: codigoVerificacao()
+  };
+}
+function enviar() {
+  if (enviando || !URL_ENVIO || S.envio === "ok") return;
+  enviando = true; statusEnvio();
+  /* text/plain evita a verificação prévia (preflight) que o Apps Script não atende. */
+  fetch(URL_ENVIO, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(dadosEnvio()), redirect: "follow" })
+    .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+    .then(function (j) { if (!j || !j.ok) throw new Error((j && j.erro) || "resposta inválida"); S.envio = "ok"; salvar(); })
+    .catch(function () { S.envio = "erro"; salvar(); })
+    .then(function () { enviando = false; statusEnvio(); });
+}
+function codigoVerificacao() {
+  var base = [S.nome, S.ra, S.inicio, S.fim, S.geral, pontos(), S.ord.join("."), S.q.map(function (t) { return t.join(""); }).join("|")].join("#");
+  return hash("SA#" + base) + "-" + hash(base + "#UNA");
+}
+
+function hash(str) {
+  var h = 2166136261;
+  for (var i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return ("0000000" + (h >>> 0).toString(16)).slice(-8).toUpperCase();
+}
+
+function esc(t) { return String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
+
+function gerarRelatorio() {
+  var pts = pontos(), total = S.ord.length;
+  var tentTotal = S.q.reduce(function (a, t) { return a + t.length; }, 0);
+  var codigo = codigoVerificacao();
+  var linhas = "", temas = {};
+  S.ord.forEach(function (_, i) {
+    var Q = QQ(i), okp = acertoPrimeira(i);
+    if (!okp) temas[Q.tema] = (temas[Q.tema] || 0) + 1;
+    linhas += "<tr><td>" + (i + 1) + "</td><td>Q" + p2(S.ord[i] + 1) + "</td><td>" + esc(Q.tema) + "</td><td>" + S.q[i].length +
+      "</td><td>" + esc(S.q[i].join(", ") || "-") + "</td><td>" + Q.c + "</td><td class='" + (okp ? "ok" : "bad") + "'>" + esc(resultadoTexto(i)) + "</td></tr>";
+  });
+  var ks = Object.keys(temas);
+  var reforco = ks.length ? "<ul>" + ks.map(function (k) { return "<li>" + esc(k) + " — " + temas[k] + " questão(ões) com erro</li>"; }).join("") + "</ul>" : "<p>Nenhum.</p>";
+  function dado(r, v) { return "<tr><th>" + r + "</th><td>" + esc(v) + "</td></tr>"; }
+  return "<!DOCTYPE html>\n<html lang='pt-BR'><head><meta charset='UTF-8'><meta name='viewport' content='width=device-width, initial-scale=1'>" +
+    "<title>Relatório — " + esc(S.nome) + " — RA " + esc(S.ra) + "</title><style>" +
+    "body{font:15px/1.5 Georgia,'Times New Roman',serif;color:#1c2330;background:#fff;max-width:900px;margin:0 auto;padding:24px 16px}" +
+    "h1{font-size:1.3rem;border-bottom:2px solid #1f4e8c;padding-bottom:8px}h2{font-size:1.05rem;margin-top:26px}" +
+    "table{border-collapse:collapse;width:100%}th,td{text-align:left;padding:6px 8px;border-bottom:1px solid #d9dde4;vertical-align:top}" +
+    "table.d th{width:190px}.nota{font-size:1.8rem;font-weight:bold;color:#1f4e8c}.ok{color:#17703b;font-weight:bold}.bad{color:#a32020;font-weight:bold}" +
+    ".w{overflow-x:auto}.cod{font-family:monospace;color:#5b6575;margin-top:24px}@media print{body{padding:0}}" +
+    "</style></head><body>" +
+    "<h1>Relatório de Revisão — " + esc(DISCIPLINA) + "</h1>" +
+    "<p class='nota'>" + pts + " / " + total + " (" + Math.round(pts / total * 100) + "%)</p>" +
+    "<table class='d'>" +
+    dado("Nome completo", S.nome) + dado("RA", S.ra) + dado("Data", fData(S.inicio)) +
+    dado("Início", fData(S.inicio) + " " + fHora(S.inicio)) + dado("Término", fData(S.fim) + " " + fHora(S.fim)) +
+    dado("Duração", fDur(S.fim - S.inicio)) + dado("Realização nº", S.geral + " (neste navegador)") +
+    dado("Pontuação", pts + " / " + total + " — acertos na 1ª tentativa") +
+    dado("Total de tentativas", tentTotal + " (em " + total + " questões)") +
+    dado("Questões sorteadas", total + " de " + QUESTOES.length + " do banco, em ordem aleatória") +
+    "</table>" +
+    "<h2>Detalhamento por questão</h2>" +
+    "<div class='w'><table><thead><tr><th>Posição</th><th>Banco</th><th>Assunto</th><th>Tentativas</th><th>Respostas</th><th>Gabarito</th><th>Resultado</th></tr></thead><tbody>" +
+    linhas + "</tbody></table></div>" +
+    "<p><small>Posição = ordem em que a questão apareceu para o aluno; Banco = número da questão no banco.</small></p>" +
+    "<h2>Assuntos a reforçar</h2>" + reforco +
+    "<p class='cod'>Código de verificação: " + codigo + "</p></body></html>";
+}
+
+function baixarRelatorio() {
+  var blob = new Blob([gerarRelatorio()], { type: "text/html;charset=utf-8" });
+  var a = document.createElement("a");
+  var nome = S.nome.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^A-Za-z0-9]+/g, "_");
+  a.href = URL.createObjectURL(blob);
+  a.download = "SA_revisao_RA" + S.ra.replace(/[^A-Za-z0-9]+/g, "") + "_" + nome + ".html";
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
+}
+
+render();
+</script>
+</body>
+</html>
