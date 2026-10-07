@@ -56,6 +56,11 @@
   .fb.bad { background: var(--bad-bg); border-color: var(--bad); }
   .fb strong.t { display: block; margin-bottom: 4px; }
   .fb.ok strong.t { color: var(--ok); } .fb.bad strong.t { color: var(--bad); }
+  .timer { position: sticky; top: 0; z-index: 2; background: var(--card); border: 1px solid var(--line); border-left: 5px solid var(--muted);
+           border-radius: 6px; padding: 8px 12px; margin-bottom: 14px; font-weight: bold; font-size: .95rem; color: var(--muted); }
+  .timer.go { border-left-color: var(--accent); color: var(--accent); }
+  .timer.fim { border-left-color: var(--bad); color: var(--bad); }
+  .opt.travada { opacity: .6; cursor: not-allowed; }
   .erro { color: var(--bad); font-size: .92rem; margin-top: 8px; min-height: 1.2em; }
   .score { font-size: 2.4rem; font-weight: bold; color: var(--accent); margin: 6px 0; }
   .tw { overflow-x: auto; }
@@ -393,9 +398,11 @@ var LETRAS = ["a", "b", "c", "d", "e"];
    Com a URL preenchida, o resultado é enviado automaticamente ao professor ao finalizar.
    Vazia, a página apenas oferece o download do relatório. */
 var URL_ENVIO = "https://script.google.com/macros/s/AKfycbxBus0NaKf5HkAUNwyBRDueFkdj_oo0GJTNuDmWOabpUksFSHd4cKaGIhMHshTp05Tu/exec";
+var TEMPO_MIN = 30; /* segundos de leitura: as alternativas só são liberadas depois desse tempo */
+var TEMPO_MAX = 60; /* segundos totais por questão: depois disso a questão é encerrada */
 var SORTEIO = 20; /* quantidade de questões sorteadas do banco para cada aluno */
-var CHAVE = "sa_revisao_v1";
-var CHAVE_N = "sa_revisao_v1_tentativas";
+var CHAVE = "sa_revisao_v2";
+var CHAVE_N = "sa_revisao_v2_tentativas";
 var app = document.getElementById("app");
 var S = carregar();
 
@@ -445,12 +452,15 @@ function sortear() {
   return embaralhar(sel);
 }
 
+var idxNaTela = -1;
 function render() {
+  if (relogio) { clearInterval(relogio); relogio = null; }
   app.innerHTML = "";
   if (!S) return telaInicio();
   if (S.fim) return telaFim();
   telaQuestao();
-  window.scrollTo(0, 0);
+  if (idxNaTela !== S.idx) window.scrollTo(0, 0);   /* só volta ao topo ao trocar de questão */
+  idxNaTela = S.idx;
 }
 
 function telaInicio() {
@@ -463,7 +473,7 @@ function telaInicio() {
   app.appendChild(el("label", { "class": "field", "for": "ra", text: "RA" }));
   app.appendChild(ra);
   app.appendChild(erro);
-  app.appendChild(el("p", { "class": "nota", text: "São 20 questões objetivas, sorteadas de um banco de questões e apresentadas em ordem diferente para cada aluno. A pontuação considera os acertos na primeira tentativa. Em caso de erro, você recebe a indicação do assunto a estudar e pode tentar novamente; todas as tentativas são registradas. Ao final, " + (URL_ENVIO ? "o resultado é enviado automaticamente ao professor; mantenha a conexão com a internet." : "é gerado um relatório em arquivo .html que deve ser enviado ao professor.") }));
+  app.appendChild(el("p", { "class": "nota", text: "Cada questão tem tempo controlado: as alternativas são liberadas após " + TEMPO_MIN + " segundos de leitura, e a resposta deve ser enviada em até " + TEMPO_MAX + " segundos, contados da abertura da questão; vencido o prazo, a questão é encerrada. São 20 questões objetivas, sorteadas de um banco de questões e apresentadas em ordem diferente para cada aluno. A pontuação considera os acertos na primeira tentativa. Em caso de erro, você recebe a indicação do assunto a estudar e pode tentar novamente; todas as tentativas são registradas. Ao final, " + (URL_ENVIO ? "o resultado é enviado automaticamente ao professor; mantenha a conexão com a internet." : "é gerado um relatório em arquivo .html que deve ser enviado ao professor.") }));
   app.appendChild(el("div", { "class": "actions" }, [el("button", { text: "Iniciar", onclick: function () {
     var n = nome.value.replace(/\s+/g, " ").trim(), r = ra.value.trim();
     if (n.split(" ").length < 2 || n.length < 5) { erro.textContent = "Informe o nome completo (nome e sobrenome)."; return; }
@@ -471,13 +481,22 @@ function telaInicio() {
     var ord = sortear();
     S = { nome: n, ra: r, inicio: Date.now(), fim: null, idx: 0, geral: numTentativaGeral(true),
           id: Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 10), envio: null,
-          ord: ord, q: ord.map(function () { return []; }) };
+          ord: ord, q: ord.map(function () { return []; }),
+          t: ord.map(function () { return null; }), dur: ord.map(function () { return null; }), exp: ord.map(function () { return false; }) };
     salvar(); render();
   } })]));
 }
 
+var relogio = null;
+function segundos(i) { return (Date.now() - S.t[i]) / 1000; }
+function tempoQ(i) { return S.dur[i] == null ? "-" : Math.round(S.dur[i] / 1000) + " s"; }
+
 function telaQuestao() {
   var i = S.idx, Q = QQ(i), total = S.ord.length, tent = S.q[i], ok = resolvida(i), ultima = i === total - 1;
+  if (!S.t[i]) { S.t[i] = Date.now(); salvar(); }           /* o relógio da questão começa quando ela é aberta */
+  if (!ok && !S.exp[i] && segundos(i) >= TEMPO_MAX) { S.exp[i] = true; S.dur[i] = TEMPO_MAX * 1000; salvar(); }
+  var exp = !!S.exp[i], fechada = ok || exp, bloqueada = !fechada && segundos(i) < TEMPO_MIN;
+
   app.appendChild(el("div", { "class": "meta" }, [
     el("span", { text: "Questão " + (i + 1) + " de " + total }),
     el("span", { text: S.nome + " · RA " + S.ra })
@@ -485,19 +504,25 @@ function telaQuestao() {
   var barra = el("div", { "class": "bar" }, [el("div")]);
   barra.firstChild.style.width = (i / total * 100) + "%";
   app.appendChild(barra);
+
+  var crono = null;
+  if (!fechada) { crono = el("div", { "class": "timer", role: "timer" }); app.appendChild(crono); }
+
   app.appendChild(el("div", { "class": "tema", text: Q.tema }));
   app.appendChild(el("div", { "class": "enun" }, Q.enun.map(function (t) { return el("p", { text: t }); })));
 
   var grupo = el("div", { role: "radiogroup" });
   var btnConf = el("button", { text: "Confirmar resposta" });
   btnConf.disabled = true;
+  var liberaveis = [];
   Q.op.forEach(function (texto, k) {
     var letra = LETRAS[k], jaErrou = tent.indexOf(letra) >= 0 && letra !== Q.c;
     var inp = el("input", { type: "radio", name: "op", value: letra, id: "op" + k });
-    if (ok || jaErrou) inp.disabled = true;
+    if (fechada || jaErrou || bloqueada) inp.disabled = true;
+    if (!fechada && !jaErrou) liberaveis.push(inp);
     if (ok && letra === Q.c) inp.checked = true;
     inp.onchange = function () { btnConf.disabled = false; };
-    var cls = "opt" + (jaErrou ? " errada" : "") + (ok && letra === Q.c ? " certa" : "");
+    var cls = "opt" + (jaErrou ? " errada" : "") + (ok && letra === Q.c ? " certa" : "") + (bloqueada ? " travada" : "");
     grupo.appendChild(el("label", { "class": cls, "for": "op" + k }, [inp, el("span", { text: "(" + letra + ") " + texto })]));
   });
   app.appendChild(grupo);
@@ -507,31 +532,61 @@ function telaQuestao() {
       el("strong", { "class": "t", text: "Resposta correta." }),
       el("span", { text: tent.length === 1 ? "Acerto na primeira tentativa." : "Acerto na " + tent.length + "ª tentativa (não pontua, pois houve erro anterior)." })
     ]));
+  } else if (exp) {
+    app.appendChild(el("div", { "class": "fb bad", role: "alert" }, [
+      el("strong", { "class": "t", text: "Tempo esgotado. " + (tent.length ? "Tentativas nesta questão: " + tent.length + "." : "A questão foi encerrada sem resposta.") }),
+      el("span", { text: "Assunto para estudar: " + Q.tema + ". " + Q.estudo })
+    ]));
   } else if (tent.length > 0) {
     app.appendChild(el("div", { "class": "fb bad", role: "alert" }, [
       el("strong", { "class": "t", text: "Resposta incorreta. Tentativas nesta questão: " + tent.length + "." }),
-      el("span", { text: "Assunto para estudar: " + Q.tema + ". " + Q.estudo })
+      el("span", { text: "Assunto para estudar: " + Q.tema + ". " + Q.estudo + " Você pode tentar novamente enquanto houver tempo." })
     ]));
   }
 
   btnConf.onclick = function () {
     var m = grupo.querySelector("input:checked");
-    if (!m) return;
-    tent.push(m.value); salvar(); render();
+    if (segundos(i) >= TEMPO_MAX) { render(); return; }      /* prazo vencido: a resposta não é aceita */
+    if (!m || segundos(i) < TEMPO_MIN) return;
+    tent.push(m.value);
+    if (m.value === Q.c) S.dur[i] = Date.now() - S.t[i];
+    salvar(); render();
   };
-  var avancar = el("button", { "class": ok ? "" : "sec", text: ultima ? "Finalizar questionário" : "Próxima questão", onclick: function () {
+  var avancar = el("button", { "class": fechada ? "" : "sec", text: ultima ? "Finalizar questionário" : "Próxima questão", onclick: function () {
+    if (S.dur[i] == null) S.dur[i] = Math.min(Date.now() - S.t[i], TEMPO_MAX * 1000);
     if (ultima) { S.fim = Date.now(); salvar(); render(); if (!URL_ENVIO) baixarRelatorio(); }
     else { S.idx++; salvar(); render(); }
   } });
   var botoes = [];
-  if (!ok) { btnConf.textContent = tent.length ? "Tentar novamente" : "Confirmar resposta"; botoes.push(btnConf); }
-  if (tent.length > 0) botoes.push(avancar);
+  if (!fechada) { btnConf.textContent = tent.length ? "Tentar novamente" : "Confirmar resposta"; botoes.push(btnConf); }
+  if (fechada || tent.length > 0) botoes.push(avancar);
   app.appendChild(el("div", { "class": "actions" }, botoes));
+
+  if (!crono) return;
+  function tique() {
+    var s = segundos(i);
+    if (s >= TEMPO_MAX) { render(); return; }
+    if (s < TEMPO_MIN) {
+      crono.className = "timer lock";
+      crono.textContent = "Leia a questão. As alternativas serão liberadas em " + Math.ceil(TEMPO_MIN - s) + " s.";
+    } else {
+      if (bloqueada) {                                        /* fim da leitura: libera as alternativas sem recarregar a tela */
+        bloqueada = false;
+        liberaveis.forEach(function (x) { x.disabled = false; x.parentNode.className = x.parentNode.className.replace(" travada", ""); });
+      }
+      var r = Math.ceil(TEMPO_MAX - s);
+      crono.className = "timer" + (r <= 10 ? " fim" : " go");
+      crono.textContent = "Alternativas liberadas. Tempo restante para responder: " + r + " s.";
+    }
+  }
+  tique();
+  relogio = setInterval(tique, 250);
 }
 
 function resultadoTexto(i) {
   if (acertoPrimeira(i)) return "ACERTOU na 1ª tentativa";
   if (resolvida(i)) return "ERROU; acertou na " + S.q[i].length + "ª tentativa";
+  if (S.exp[i]) return S.q[i].length ? "ERROU; tempo esgotado" : "NÃO RESPONDEU; tempo esgotado";
   return "ERROU; não chegou à resposta correta";
 }
 
@@ -548,7 +603,7 @@ function telaFim() {
     tb.appendChild(el("tr", null, [
       el("td", { text: String(i + 1) }), el("td", { text: Q.tema }),
       el("td", { text: String(S.q[i].length) }),
-      el("td", { "class": okp ? "ok" : "bad", text: okp ? "Acertou" : (resolvida(i) ? "Errou (acertou depois)" : "Errou") })
+      el("td", { "class": okp ? "ok" : "bad", text: okp ? "Acertou" : (resolvida(i) ? "Errou (acertou depois)" : (S.exp[i] ? "Tempo esgotado" : "Errou")) })
     ]));
   });
   app.appendChild(el("div", { "class": "tw" }, [el("table", null, [
@@ -607,7 +662,7 @@ function dadosEnvio() {
   S.ord.forEach(function (_, i) {
     var Q = QQ(i);
     if (!acertoPrimeira(i)) temas[Q.tema] = (temas[Q.tema] || 0) + 1;
-    det.push("P" + p2(i + 1) + "=Q" + p2(S.ord[i] + 1) + "[" + S.q[i].join(",") + "]" + (acertoPrimeira(i) ? "ok" : (resolvida(i) ? "errou;acertou na " + S.q[i].length + "a" : "errou")));
+    det.push("P" + p2(i + 1) + "=Q" + p2(S.ord[i] + 1) + "[" + S.q[i].join(",") + "]" + (acertoPrimeira(i) ? "ok" : (resolvida(i) ? "errou;acertou na " + S.q[i].length + "a" : (S.exp[i] ? "tempo esgotado" : "errou"))) + "(" + tempoQ(i).replace(" ", "") + ")");
   });
   return {
     id: S.id, disciplina: SIGLA, nome: S.nome, ra: S.ra, data: fData(S.inicio),
@@ -650,7 +705,7 @@ function gerarRelatorio() {
   S.ord.forEach(function (_, i) {
     var Q = QQ(i), okp = acertoPrimeira(i);
     if (!okp) temas[Q.tema] = (temas[Q.tema] || 0) + 1;
-    linhas += "<tr><td>" + (i + 1) + "</td><td>Q" + p2(S.ord[i] + 1) + "</td><td>" + esc(Q.tema) + "</td><td>" + S.q[i].length +
+    linhas += "<tr><td>" + (i + 1) + "</td><td>Q" + p2(S.ord[i] + 1) + "</td><td>" + esc(Q.tema) + "</td><td>" + S.q[i].length + "</td><td>" + tempoQ(i) +
       "</td><td>" + esc(S.q[i].join(", ") || "-") + "</td><td>" + Q.c + "</td><td class='" + (okp ? "ok" : "bad") + "'>" + esc(resultadoTexto(i)) + "</td></tr>";
   });
   var ks = Object.keys(temas);
@@ -675,7 +730,7 @@ function gerarRelatorio() {
     dado("Questões sorteadas", total + " de " + QUESTOES.length + " do banco, em ordem aleatória") +
     "</table>" +
     "<h2>Detalhamento por questão</h2>" +
-    "<div class='w'><table><thead><tr><th>Posição</th><th>Banco</th><th>Assunto</th><th>Tentativas</th><th>Respostas</th><th>Gabarito</th><th>Resultado</th></tr></thead><tbody>" +
+    "<div class='w'><table><thead><tr><th>Posição</th><th>Banco</th><th>Assunto</th><th>Tentativas</th><th>Tempo</th><th>Respostas</th><th>Gabarito</th><th>Resultado</th></tr></thead><tbody>" +
     linhas + "</tbody></table></div>" +
     "<p><small>Posição = ordem em que a questão apareceu para o aluno; Banco = número da questão no banco.</small></p>" +
     "<h2>Assuntos a reforçar</h2>" + reforco +
