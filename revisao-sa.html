@@ -399,7 +399,6 @@ var LETRAS = ["a", "b", "c", "d", "e"];
    Vazia, a página apenas oferece o download do relatório. */
 var URL_ENVIO = "https://script.google.com/macros/s/AKfycbxBus0NaKf5HkAUNwyBRDueFkdj_oo0GJTNuDmWOabpUksFSHd4cKaGIhMHshTp05Tu/exec";
 var TEMPO_MIN = 30; /* segundos de leitura: as alternativas só são liberadas depois desse tempo */
-var TEMPO_MAX = 60; /* segundos totais por questão: depois disso a questão é encerrada */
 var SORTEIO = 20; /* quantidade de questões sorteadas do banco para cada aluno */
 var CHAVE = "sa_revisao_v2";
 var CHAVE_N = "sa_revisao_v2_tentativas";
@@ -407,7 +406,15 @@ var app = document.getElementById("app");
 var S = carregar();
 
 function carregar() {
-  try { var t = localStorage.getItem(CHAVE); if (t) return JSON.parse(t); } catch (e) {}
+  try {
+    var t = localStorage.getItem(CHAVE);
+    if (t) {
+      var s = JSON.parse(t);
+      /* sessões iniciadas em versão anterior da página: completa os campos de tempo */
+      ["t", "dur", "exp"].forEach(function (k) { if (!s[k]) s[k] = s.ord.map(function () { return k === "exp" ? false : null; }); });
+      return s;
+    }
+  } catch (e) {}
   return null;
 }
 function salvar() { try { localStorage.setItem(CHAVE, JSON.stringify(S)); } catch (e) {} }
@@ -473,7 +480,7 @@ function telaInicio() {
   app.appendChild(el("label", { "class": "field", "for": "ra", text: "RA" }));
   app.appendChild(ra);
   app.appendChild(erro);
-  app.appendChild(el("p", { "class": "nota", text: "Cada questão tem tempo controlado: as alternativas são liberadas após " + TEMPO_MIN + " segundos de leitura, e a resposta deve ser enviada em até " + TEMPO_MAX + " segundos, contados da abertura da questão; vencido o prazo, a questão é encerrada. São 20 questões objetivas, sorteadas de um banco de questões e apresentadas em ordem diferente para cada aluno. A pontuação considera os acertos na primeira tentativa. Em caso de erro, você recebe a indicação do assunto a estudar e pode tentar novamente; todas as tentativas são registradas. Ao final, " + (URL_ENVIO ? "o resultado é enviado automaticamente ao professor; mantenha a conexão com a internet." : "é gerado um relatório em arquivo .html que deve ser enviado ao professor.") }));
+  app.appendChild(el("p", { "class": "nota", text: "Cada questão tem um tempo mínimo de leitura: as alternativas são liberadas após " + TEMPO_MIN + " segundos, contados da abertura da questão. Não há tempo máximo para responder. São 20 questões objetivas, sorteadas de um banco de questões e apresentadas em ordem diferente para cada aluno. A pontuação considera os acertos na primeira tentativa. Em caso de erro, você recebe a indicação do assunto a estudar e pode tentar novamente; todas as tentativas são registradas. Ao final, " + (URL_ENVIO ? "o resultado é enviado automaticamente ao professor; mantenha a conexão com a internet." : "é gerado um relatório em arquivo .html que deve ser enviado ao professor.") }));
   app.appendChild(el("div", { "class": "actions" }, [el("button", { text: "Iniciar", onclick: function () {
     var n = nome.value.replace(/\s+/g, " ").trim(), r = ra.value.trim();
     if (n.split(" ").length < 2 || n.length < 5) { erro.textContent = "Informe o nome completo (nome e sobrenome)."; return; }
@@ -494,8 +501,7 @@ function tempoQ(i) { return S.dur[i] == null ? "-" : Math.round(S.dur[i] / 1000)
 function telaQuestao() {
   var i = S.idx, Q = QQ(i), total = S.ord.length, tent = S.q[i], ok = resolvida(i), ultima = i === total - 1;
   if (!S.t[i]) { S.t[i] = Date.now(); salvar(); }           /* o relógio da questão começa quando ela é aberta */
-  if (!ok && !S.exp[i] && segundos(i) >= TEMPO_MAX) { S.exp[i] = true; S.dur[i] = TEMPO_MAX * 1000; salvar(); }
-  var exp = !!S.exp[i], fechada = ok || exp, bloqueada = !fechada && segundos(i) < TEMPO_MIN;
+  var fechada = ok, bloqueada = !fechada && segundos(i) < TEMPO_MIN;
 
   app.appendChild(el("div", { "class": "meta" }, [
     el("span", { text: "Questão " + (i + 1) + " de " + total }),
@@ -532,28 +538,22 @@ function telaQuestao() {
       el("strong", { "class": "t", text: "Resposta correta." }),
       el("span", { text: tent.length === 1 ? "Acerto na primeira tentativa." : "Acerto na " + tent.length + "ª tentativa (não pontua, pois houve erro anterior)." })
     ]));
-  } else if (exp) {
-    app.appendChild(el("div", { "class": "fb bad", role: "alert" }, [
-      el("strong", { "class": "t", text: "Tempo esgotado. " + (tent.length ? "Tentativas nesta questão: " + tent.length + "." : "A questão foi encerrada sem resposta.") }),
-      el("span", { text: "Assunto para estudar: " + Q.tema + ". " + Q.estudo })
-    ]));
   } else if (tent.length > 0) {
     app.appendChild(el("div", { "class": "fb bad", role: "alert" }, [
       el("strong", { "class": "t", text: "Resposta incorreta. Tentativas nesta questão: " + tent.length + "." }),
-      el("span", { text: "Assunto para estudar: " + Q.tema + ". " + Q.estudo + " Você pode tentar novamente enquanto houver tempo." })
+      el("span", { text: "Assunto para estudar: " + Q.tema + ". " + Q.estudo + " Você pode tentar novamente." })
     ]));
   }
 
   btnConf.onclick = function () {
     var m = grupo.querySelector("input:checked");
-    if (segundos(i) >= TEMPO_MAX) { render(); return; }      /* prazo vencido: a resposta não é aceita */
     if (!m || segundos(i) < TEMPO_MIN) return;
     tent.push(m.value);
     if (m.value === Q.c) S.dur[i] = Date.now() - S.t[i];
     salvar(); render();
   };
   var avancar = el("button", { "class": fechada ? "" : "sec", text: ultima ? "Finalizar questionário" : "Próxima questão", onclick: function () {
-    if (S.dur[i] == null) S.dur[i] = Math.min(Date.now() - S.t[i], TEMPO_MAX * 1000);
+    if (S.dur[i] == null) S.dur[i] = Date.now() - S.t[i];
     if (ultima) { S.fim = Date.now(); salvar(); render(); if (!URL_ENVIO) baixarRelatorio(); }
     else { S.idx++; salvar(); render(); }
   } });
@@ -565,22 +565,21 @@ function telaQuestao() {
   if (!crono) return;
   function tique() {
     var s = segundos(i);
-    if (s >= TEMPO_MAX) { render(); return; }
     if (s < TEMPO_MIN) {
       crono.className = "timer lock";
       crono.textContent = "Leia a questão. As alternativas serão liberadas em " + Math.ceil(TEMPO_MIN - s) + " s.";
-    } else {
-      if (bloqueada) {                                        /* fim da leitura: libera as alternativas sem recarregar a tela */
-        bloqueada = false;
-        liberaveis.forEach(function (x) { x.disabled = false; x.parentNode.className = x.parentNode.className.replace(" travada", ""); });
-      }
-      var r = Math.ceil(TEMPO_MAX - s);
-      crono.className = "timer" + (r <= 10 ? " fim" : " go");
-      crono.textContent = "Alternativas liberadas. Tempo restante para responder: " + r + " s.";
+      return;
     }
+    if (bloqueada) {                                          /* fim da leitura: libera as alternativas sem recarregar a tela */
+      bloqueada = false;
+      liberaveis.forEach(function (x) { x.disabled = false; x.parentNode.className = x.parentNode.className.replace(" travada", ""); });
+    }
+    crono.className = "timer go";
+    crono.textContent = "Alternativas liberadas. Responda sem pressa: não há tempo máximo.";
+    if (relogio) { clearInterval(relogio); relogio = null; }
   }
-  tique();
   relogio = setInterval(tique, 250);
+  tique();
 }
 
 function resultadoTexto(i) {
