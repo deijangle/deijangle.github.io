@@ -78,7 +78,7 @@
 <main>
   <header>
     <h1>Revisão — Normalização</h1>
-    <p>Banco de Dados · 20 questões objetivas · em ordem aleatória</p>
+    <p>Banco de Dados · 10 questões objetivas sorteadas · alternativas de (a) a (e)</p>
   </header>
   <div id="app" class="card"></div>
 </main>
@@ -323,9 +323,9 @@ var LETRAS = ["a", "b", "c", "d", "e"];
 var URL_ENVIO = "https://script.google.com/macros/s/AKfycbxBus0NaKf5HkAUNwyBRDueFkdj_oo0GJTNuDmWOabpUksFSHd4cKaGIhMHshTp05Tu/exec";
 var NIVEIS = { basico: "Básico", intermediario: "Intermediário", avancado: "Avançado" };
 var ORDEM_NIVEL = ["basico", "intermediario", "avancado"];
-var SORTEIO = 20; /* quantidade de questões sorteadas do banco para cada aluno */
-var CHAVE = "bdn_revisao_v1";
-var CHAVE_N = "bdn_revisao_v1_tentativas";
+var SORTEIO = 10; /* quantidade de questões sorteadas do banco para cada aluno */
+var CHAVE = "bdn_revisao_v2";
+var CHAVE_N = "bdn_revisao_v2_tentativas";
 var app = document.getElementById("app");
 var S = carregar();
 
@@ -370,8 +370,17 @@ function embaralhar(a) {
   for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; }
   return a;
 }
-/* Todas as questões, em ordem aleatória (diferente para cada aluno). */
-function sortear() { return embaralhar(QUESTOES.map(function (_, i) { return i; })); }
+/* Sorteia 10 das 20 questões do banco, sempre na mesma proporção de níveis
+   (4 básicas, 3 intermediárias e 3 avançadas), em ordem aleatória para cada aluno. */
+var POR_NIVEL = { basico: 4, intermediario: 3, avancado: 3 };
+function sortear() {
+  var sel = [];
+  ORDEM_NIVEL.forEach(function (nv) {
+    var g = []; QUESTOES.forEach(function (Q, i) { if (Q.nivel === nv) g.push(i); });
+    sel = sel.concat(embaralhar(g).slice(0, POR_NIVEL[nv]));
+  });
+  return embaralhar(sel);
+}
 function selo(nv) { return el("span", { "class": "nv " + nv, text: "Nível " + NIVEIS[nv].toLowerCase() }); }
 function siglaNivel(nv) { return nv === "basico" ? "B" : nv === "intermediario" ? "I" : "A"; }
 function porNivel() {
@@ -402,7 +411,7 @@ function telaInicio() {
   app.appendChild(el("label", { "class": "field", "for": "ra", text: "RA" }));
   app.appendChild(ra);
   app.appendChild(erro);
-  app.appendChild(el("p", { "class": "nota", text: "São 20 questões objetivas sobre normalização, sem limite de tempo: as alternativas ficam liberadas desde a abertura de cada questão e você responde no seu ritmo. As questões aparecem em ordem aleatória, e cada uma indica o seu nível: básico, intermediário ou avançado. A pontuação considera os acertos na primeira tentativa. Em caso de erro, você recebe a indicação do assunto a estudar e pode tentar novamente; todas as tentativas são registradas. Ao final, " + (URL_ENVIO ? "o resultado é enviado automaticamente ao professor; mantenha a conexão com a internet." : "é gerado um relatório em arquivo .html que deve ser enviado ao professor.") }));
+  app.appendChild(el("p", { "class": "nota", text: "São 10 questões objetivas sobre normalização, sorteadas de um banco de 20 e diferentes para cada aluno, sem limite de tempo: as alternativas ficam liberadas desde a abertura de cada questão e você responde no seu ritmo. As questões aparecem em ordem aleatória, e cada uma indica o seu nível: básico, intermediário ou avançado. A pontuação considera os acertos na primeira tentativa. Em caso de erro, você recebe a indicação do assunto a estudar e pode tentar novamente; todas as tentativas são registradas. Ao final, " + (URL_ENVIO ? "o resultado é enviado automaticamente ao professor; mantenha a conexão com a internet." : "é gerado um relatório em arquivo .html que deve ser enviado ao professor.") }));
   app.appendChild(el("div", { "class": "legenda" }, ORDEM_NIVEL.map(selo)));
   app.appendChild(el("div", { "class": "actions" }, [el("button", { text: "Iniciar", onclick: function () {
     var n = nome.value.replace(/\s+/g, " ").trim(), r = ra.value.trim();
@@ -627,7 +636,7 @@ function gerarRelatorio() {
     dado("Pontuação", pts + " / " + total + " — acertos na 1ª tentativa") +
     dado("Total de tentativas", tentTotal + " (em " + total + " questões)") +
     dado("Acertos por nível", resumoNiveis()) +
-    dado("Questões", total + ", em ordem aleatória") +
+    dado("Questões", total + " de " + QUESTOES.length + " do banco (4 básicas, 3 intermediárias e 3 avançadas), em ordem aleatória") +
     "</table>" +
     "<h2>Detalhamento por questão</h2>" +
     "<div class='w'><table><thead><tr><th>Posição</th><th>Banco</th><th>Nível</th><th>Assunto</th><th>Tentativas</th><th>Tempo</th><th>Respostas</th><th>Gabarito</th><th>Resultado</th></tr></thead><tbody>" +
