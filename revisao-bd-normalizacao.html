@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Revisão — Normalização</title>
+<style>
+  :root {
+    --bg: #f4f5f7; --card: #ffffff; --ink: #1c2330; --muted: #5b6575;
+    --line: #d9dde4; --accent: #1f4e8c; --accent-ink: #ffffff;
+    --ok: #17703b; --ok-bg: #e5f4ea; --bad: #a32020; --bad-bg: #fbe9e9;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12161d; --card: #1b212b; --ink: #e8ebf0; --muted: #9aa5b5;
+      --line: #313a48; --accent: #6ea4e8; --accent-ink: #0d1117;
+      --ok: #6fd094; --ok-bg: #173224; --bad: #f08a8a; --bad-bg: #3a1c1c;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 16px/1.55 Georgia, "Times New Roman", serif;
+  }
+  main { max-width: 780px; margin: 0 auto; padding: 24px 16px 64px; }
+  header h1 { font-size: 1.35rem; margin: 0 0 2px; letter-spacing: .01em; }
+  header p { margin: 0; color: var(--muted); font-size: .95rem; }
+  header { border-bottom: 2px solid var(--accent); padding-bottom: 12px; margin-bottom: 20px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 20px; }
+  label.field { display: block; margin: 14px 0 4px; font-weight: bold; font-size: .95rem; }
+  input[type=text] {
+    width: 100%; padding: 10px 12px; font: inherit; color: var(--ink);
+    background: var(--bg); border: 1px solid var(--line); border-radius: 6px;
+  }
+  button {
+    font: inherit; font-weight: bold; padding: 10px 18px; border-radius: 6px; cursor: pointer;
+    border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink);
+  }
+  button.sec { background: transparent; color: var(--accent); }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+  .meta { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 6px;
+          color: var(--muted); font-size: .9rem; margin-bottom: 10px; }
+  .bar { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; margin-bottom: 16px; }
+  .bar div { height: 100%; background: var(--accent); }
+  .tema { font-size: .82rem; text-transform: uppercase; letter-spacing: .06em; color: var(--accent); font-weight: bold; }
+  .enun { margin: 8px 0 16px; }
+  .enun p { margin: 0 0 10px; }
+  .opt { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; margin: 8px 0;
+         border: 1px solid var(--line); border-radius: 6px; cursor: pointer; }
+  .opt input { margin-top: 5px; }
+  .opt.errada { opacity: .55; text-decoration: line-through; cursor: not-allowed; }
+  .opt.certa { border-color: var(--ok); background: var(--ok-bg); }
+  .fb { margin-top: 16px; padding: 12px 14px; border-radius: 6px; border-left: 5px solid; }
+  .fb.ok { background: var(--ok-bg); border-color: var(--ok); }
+  .fb.bad { background: var(--bad-bg); border-color: var(--bad); }
+  .fb strong.t { display: block; margin-bottom: 4px; }
+  .fb.ok strong.t { color: var(--ok); } .fb.bad strong.t { color: var(--bad); }
+  .nivelrow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-bottom: 6px; }
+  .nivelrow .tema { margin: 0; }
+  .nv { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; font-size: .8rem; font-weight: bold; border: 1px solid; white-space: nowrap; }
+  .nv::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: currentColor; }
+  .nv.basico { color: #17703b; background: #e4f4e9; border-color: #8fd0a4; }
+  .nv.intermediario { color: #7a5600; background: #fff4cc; border-color: #e8c24a; }
+  .nv.avancado { color: #a32020; background: #fde8e6; border-color: #eea39b; }
+  .legenda { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 4px; }
+  .erro { color: var(--bad); font-size: .92rem; margin-top: 8px; min-height: 1.2em; }
+  .score { font-size: 2.4rem; font-weight: bold; color: var(--accent); margin: 6px 0; }
+  .tw { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: .92rem; margin-top: 12px; }
+  th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  td.ok { color: var(--ok); font-weight: bold; } td.bad { color: var(--bad); font-weight: bold; }
+  ul.est { padding-left: 20px; } ul.est li { margin-bottom: 8px; }
+  .nota { color: var(--muted); font-size: .9rem; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Revisão — Normalização</h1>
+    <p>Banco de Dados · 20 questões objetivas · em ordem aleatória</p>
+  </header>
+  <div id="app" class="card"></div>
+</main>
+
+<script>
+/* ============================================================
+   QUESTÕES — para editar, altere apenas este bloco.
+   c = letra da alternativa correta; estudo = orientação exibida
+   ao aluno quando ele erra (não revela a resposta).
+   ============================================================ */
+var DISCIPLINA = "Banco de Dados — Normalização";
+var SIGLA = "BDN"; /* identifica a disciplina no envio e define a aba da planilha */
+var QUESTOES = [
+{ nivel: "basico", tema: "Normalização: conceitos e anomalias",
+  enun: ["Em uma aula de Banco de Dados, o professor afirma que a normalização é uma etapa de revisão do modelo lógico.",
+         "O principal objetivo da normalização é:"],
+  op: ["Reduzir redundâncias e anomalias, decompondo tabelas com base nas dependências.",
+       "Acelerar as consultas, criando um índice para cada coluna de todas as tabelas.",
+       "Reunir todos os dados em uma única tabela, para evitar o uso de junções (JOIN).",
+       "Eliminar as chaves estrangeiras, pois elas repetem valores entre as tabelas.",
+       "Criar uma tabela separada para cada atributo, sem considerar as regras do negócio."],
+  c: "a",
+  estudo: "Objetivos da normalização (Aula 5). Reveja por que se decompõe uma tabela e o papel das dependências funcionais nessa decisão." },
+
+{ nivel: "basico", tema: "Normalização: conceitos e anomalias",
+  enun: ["A tabela TURMA_ALUNO(id_aluno, nome_aluno, id_curso, nome_curso) é a única que guarda o nome dos cursos. O último aluno do curso de Design é excluído, e o nome \"Design\" desaparece do banco.",
+         "Essa situação caracteriza uma anomalia de:"],
+  op: ["Inserção, pois não é possível cadastrar um aluno sem informar o seu curso.",
+       "Atualização, pois o nome do curso precisa ser alterado em várias linhas.",
+       "Exclusão, pois apagar um fato (o aluno) eliminou outro fato (o curso).",
+       "Integridade referencial, pois a FK do curso passou a apontar para nulo.",
+       "Dependência parcial, pois o nome do curso depende de parte da chave."],
+  c: "c",
+  estudo: "Anomalias de inserção, atualização e exclusão (Aula 5). Reveja o exemplo do produto que some ao excluir a sua única venda." },
+
+{ nivel: "basico", tema: "Dependências funcionais",
+  enun: ["Em um sistema acadêmico, vale a dependência funcional matricula → nome_aluno.",
+         "O significado correto dessa dependência é:"],
+  op: ["Cada nome de aluno corresponde a uma única matrícula em todo o sistema.",
+       "A matrícula é calculada a partir do nome do aluno no momento do cadastro.",
+       "Alunos com o mesmo nome devem, obrigatoriamente, ter a mesma matrícula.",
+       "O nome do aluno é a chave primária, e a matrícula é um atributo comum.",
+       "Para uma mesma matrícula, existe sempre um único nome de aluno associado."],
+  c: "e",
+  estudo: "Leitura de dependência funcional (Aula 5). Reveja o sentido da seta: o lado esquerdo determina o lado direito." },
+
+{ nivel: "basico", tema: "Primeira Forma Normal (1FN)",
+  enun: ["Na tabela CLIENTE(id_cliente, nome, telefones), uma linha apresenta telefones = \"3333-1111, 9999-2222\".",
+         "A avaliação e a correção adequadas são:"],
+  op: ["Atende à 1FN, pois a coluna telefones ocupa uma única célula da linha.",
+       "Viola a 1FN; cria-se TELEFONE(id_cliente FK, numero), um número por linha.",
+       "Viola a 2FN; deve-se tornar telefones parte de uma chave primária composta.",
+       "Viola a 3FN; deve-se mover os telefones para uma tabela de cidades.",
+       "Atende à 3FN, pois o cliente possui uma chave primária simples definida."],
+  c: "b",
+  estudo: "Primeira Forma Normal e atributos multivalorados (Aula 5). Reveja a correção em que cada valor passa a ocupar uma linha própria." },
+
+{ nivel: "basico", tema: "Normalização: conceitos e anomalias",
+  enun: ["As formas normais estudadas são aplicadas em sequência.",
+         "Para que uma tabela esteja na 3FN, é necessário que ela:"],
+  op: ["Esteja na 1FN e tenha, obrigatoriamente, uma chave primária composta.",
+       "Não tenha nenhuma chave estrangeira, apenas a sua chave primária.",
+       "Esteja na 1FN, mesmo que existam dependências parciais da chave.",
+       "Esteja na 2FN e não possua dependências transitivas da chave.",
+       "Esteja na 2FN, mesmo que existam dependências transitivas."],
+  c: "d",
+  estudo: "Caráter cumulativo das formas normais (Aula 5). Reveja a comparação entre 1FN, 2FN e 3FN e o problema que cada uma trata." },
+
+{ nivel: "basico", tema: "Dependências funcionais",
+  enun: ["Considere a tabela ITEM_PEDIDO(id_pedido, id_produto, quantidade), em que um mesmo pedido tem vários produtos e um produto aparece em vários pedidos.",
+         "O que identifica cada linha dessa tabela é:"],
+  op: ["Apenas id_pedido, pois cada pedido aparece uma única vez na tabela.",
+       "Apenas id_produto, pois cada produto aparece uma única vez na tabela.",
+       "A combinação de id_pedido e id_produto, formando uma chave composta.",
+       "A quantidade, pois ela muda a cada linha registrada na tabela.",
+       "Nenhuma coluna, pois tabelas associativas não possuem chave primária."],
+  c: "c",
+  estudo: "Chave composta (Aula 5). Reveja por que nenhuma coluna isolada identifica todas as linhas de ITEM_PEDIDO." },
+
+{ nivel: "basico", tema: "Dependências funcionais",
+  enun: ["Considere a dependência funcional id_produto → nome_produto, preço.",
+         "Nessa dependência, o determinante é:"],
+  op: ["id_produto, pois conhecendo-o se encontra um único nome e um único preço.",
+       "nome_produto, pois é o primeiro atributo à direita da seta da dependência.",
+       "preço, pois o valor do produto define qual é o seu código no cadastro.",
+       "O conjunto nome_produto e preço, que juntos determinam o id_produto.",
+       "Nenhum atributo, pois determinante só existe em chaves compostas."],
+  c: "a",
+  estudo: "Determinante e atributos determinados (Aula 5). Reveja de que lado da seta fica o determinante." },
+
+{ nivel: "intermediario", tema: "Segunda Forma Normal (2FN)",
+  enun: ["Na tabela NOTA(id_aluno, id_disciplina, nome_disciplina, nota), a chave primária é (id_aluno, id_disciplina).",
+         "A análise correta da tabela é:"],
+  op: ["Atende à 2FN, pois nome_disciplina depende de toda a chave composta.",
+       "Viola a 1FN, pois a coluna nota guarda vários valores na mesma célula.",
+       "Viola a 3FN, pois nota depende de nome_disciplina, que não é chave.",
+       "Viola a 2FN, pois nome_disciplina depende só de id_disciplina.",
+       "Atende à 3FN, pois não há atributos repetidos entre as colunas."],
+  c: "d",
+  estudo: "Dependência parcial e 2FN (Aula 5). Reveja o teste: conhecendo só parte da chave, consigo descobrir o atributo?" },
+
+{ nivel: "intermediario", tema: "Segunda Forma Normal (2FN)",
+  enun: ["Uma tabela está na 1FN, e sua única chave candidata é formada por uma só coluna (chave simples).",
+         "Quanto à 2FN, é correto afirmar que essa tabela:"],
+  op: ["Viola a 2FN, pois a 2FN exige sempre uma chave primária composta.",
+       "Está na 2FN, pois só há dependência parcial com chave composta.",
+       "Só estará na 2FN se não tiver nenhuma chave estrangeira definida.",
+       "Viola a 2FN se algum atributo não chave tiver valores repetidos.",
+       "Precisa ser decomposta, pois toda tabela na 1FN viola a 2FN."],
+  c: "b",
+  estudo: "Quando a 2FN é relevante (Aula 5). Reveja por que a dependência parcial só ocorre quando a chave candidata é composta." },
+
+{ nivel: "intermediario", tema: "Terceira Forma Normal (3FN)",
+  enun: ["Na tabela FUNCIONARIO(id_func PK, nome, id_depto, nome_depto), cada funcionário pertence a um departamento.",
+         "A análise correta é:"],
+  op: ["Viola a 2FN, pois nome_depto depende só de parte da chave primária.",
+       "Viola a 1FN, pois o departamento é um atributo multivalorado.",
+       "Atende à 3FN, pois todos os atributos dependem de id_func.",
+       "Atende à 3FN, pois id_depto já é uma chave estrangeira.",
+       "Viola a 3FN: id_func → id_depto → nome_depto é transitiva."],
+  c: "e",
+  estudo: "Dependência transitiva e 3FN (Aula 5). Reveja a cadeia pedido → cliente → cidade_cliente e onde o atributo deveria ficar." },
+
+{ nivel: "intermediario", tema: "Segunda Forma Normal (2FN)",
+  enun: ["A tabela ITEM(id_pedido, id_produto, nome_produto, preco_atual, quantidade) tem chave (id_pedido, id_produto).",
+         "A decomposição que leva a tabela à 2FN é:"],
+  op: ["PRODUTO(id_produto PK, nome_produto, preco_atual) e ITEM(id_pedido, id_produto, quantidade).",
+       "PRODUTO(id_produto PK, quantidade) e ITEM(id_pedido, id_produto, nome_produto, preco_atual).",
+       "PEDIDO(id_pedido PK, nome_produto, preco_atual) e ITEM(id_pedido, id_produto, quantidade).",
+       "ITEM(id_pedido PK, id_produto, nome_produto) e PRODUTO(preco_atual PK, quantidade).",
+       "Nenhuma: basta tornar nome_produto parte da chave para eliminar o problema."],
+  c: "a",
+  estudo: "Correção da 2FN (Aula 5). Reveja quais atributos dependem só de id_produto e para qual tabela eles devem ir." },
+
+{ nivel: "intermediario", tema: "Dependências funcionais",
+  enun: ["Na tabela VENDA, de chave (id_pedido, id_produto), valem: (I) (id_pedido, id_produto) → qtd; (II) id_pedido → data_pedido; (III) id_pedido → id_cliente e id_cliente → cidade_cliente.",
+         "A classificação correta de I, II e III é, nessa ordem:"],
+  op: ["Parcial, total e transitiva.",
+       "Total, transitiva e parcial.",
+       "Total, parcial e transitiva.",
+       "Transitiva, total e parcial.",
+       "Parcial, transitiva e total."],
+  c: "c",
+  estudo: "Dependências total, parcial e transitiva (Aula 5 e revisão). Reveja a tabela comparativa com um exemplo de cada tipo." },
+
+{ nivel: "intermediario", tema: "Normalização: conceitos e anomalias",
+  enun: ["No modelo do delivery, PRODUTO guarda preco_atual, e ITEM_PEDIDO guarda preco_praticado.",
+         "A avaliação correta dessa decisão é:"],
+  op: ["É redundância: o preço deveria ficar só em PRODUTO e ser lido por junção.",
+       "É redundância: o preço deveria ficar só em ITEM_PEDIDO, o lado N.",
+       "Viola a 2FN, pois preco_praticado depende somente de id_produto.",
+       "É correta: são fatos distintos, e o preço da venda preserva o histórico.",
+       "Viola a 3FN, pois preco_praticado depende de preco_atual, não chave."],
+  c: "d",
+  estudo: "Redundância versus fatos diferentes (Aula 5). Reveja a diferença entre o preço atual do produto e o preço praticado em cada item." },
+
+{ nivel: "intermediario", tema: "Dependências funcionais",
+  enun: ["Em uma amostra de 50 clientes, todos os que têm o sobrenome Silva moram em Belo Horizonte.",
+         "Com base nisso, a dependência sobrenome → cidade:"],
+  op: ["Vale, pois a amostra não traz nenhum Silva morando em outra cidade.",
+       "Não pode ser afirmada: a dependência decorre da regra do negócio.",
+       "Vale somente se o sobrenome for declarado como chave primária.",
+       "Vale, desde que a tabela já esteja normalizada até a 1FN.",
+       "Não vale, pois dependências só existem entre colunas numéricas."],
+  c: "b",
+  estudo: "Origem das dependências funcionais (Aula 5 e revisão). Reveja por que a dependência deve ser válida no domínio, não só na amostra." },
+
+{ nivel: "avancado", tema: "Decomposição e chaves",
+  enun: ["CONSULTA(id_consulta, data, crm, nome_medico, id_espec, nome_espec, cpf_paciente, nome_paciente). Regras: cada consulta tem um médico e um paciente; cada médico tem uma única especialidade.",
+         "O conjunto de tabelas em 3FN é:"],
+  op: ["MEDICO(crm, nome, nome_espec), PACIENTE(cpf, nome) e CONSULTA(id_consulta, data, crm FK, cpf FK).",
+       "MEDICO(crm, nome), ESPECIALIDADE(id_espec, nome) e CONSULTA(id_consulta, data, crm, id_espec, cpf, nome_paciente).",
+       "CONSULTA(id_consulta, data, crm FK, cpf FK) e PESSOA(id_pessoa, nome_medico, nome_espec, nome_paciente), sem outras.",
+       "PACIENTE(cpf, nome), MEDICO(crm, nome_medico) e CONSULTA(id_consulta, data, crm FK, cpf FK, id_espec FK, nome_espec).",
+       "ESPECIALIDADE(id_espec, nome), MEDICO(crm, nome, id_espec FK), PACIENTE(cpf, nome), CONSULTA(id, data, crm FK, cpf FK)."],
+  c: "e",
+  estudo: "Decomposição completa até a 3FN (Aula 5). Reveja o mini-desafio da MATRÍCULA: a especialidade depende do médico, não da consulta." },
+
+{ nivel: "avancado", tema: "Terceira Forma Normal (3FN)",
+  enun: ["Nos slides, a regra da 3FN aparece de forma introdutória. Formalmente, considera-se cada dependência funcional não trivial X → A.",
+         "A definição formal exige que:"],
+  op: ["X seja superchave da tabela ou A seja um atributo primo.",
+       "X seja chave estrangeira e A seja um atributo não primo.",
+       "A seja superchave da tabela, e X um atributo derivado.",
+       "X e A façam parte, juntos, da mesma chave estrangeira.",
+       "A seja chave primária, qualquer que seja o determinante."],
+  c: "a",
+  estudo: "Definição formal da 3FN e atributo primo (notas da Aula 5). Reveja o que é atributo primo e o que é superchave." },
+
+{ nivel: "avancado", tema: "Dependências funcionais",
+  enun: ["EMPRESTIMO(id_exemplar, data, id_usuario, nome_usuario, id_livro, titulo), de chave (id_exemplar, data). Regras: cada exemplar pertence a um livro; cada empréstimo tem um usuário.",
+         "A dependência transitiva presente na tabela é:"],
+  op: ["id_exemplar → id_livro, que é uma dependência total da chave composta.",
+       "(id_exemplar, data) → id_usuario → nome_usuario, passando por não chave.",
+       "(id_exemplar, data) → id_livro, que usa a chave inteira e por isso é total.",
+       "id_usuario → data, pois cada usuário faz só um empréstimo por dia.",
+       "titulo → id_livro, pois o título identifica o livro de forma única."],
+  c: "b",
+  estudo: "Dependência transitiva em um cenário completo (Aula 5). Reveja a cadeia chave → atributo não chave → outro atributo não chave." },
+
+{ nivel: "avancado", tema: "Decomposição e chaves",
+  enun: ["ITEM(id_pedido, id_produto, nome_produto, quantidade) foi decomposta em T1(id_pedido, quantidade) e T2(id_produto, nome_produto).",
+         "A avaliação correta dessa decomposição é:"],
+  op: ["Correta, pois cada tabela resultante tem só dois atributos.",
+       "Correta, pois elimina a dependência parcial de nome_produto.",
+       "Incorreta, pois T2 deveria ficar sem chave primária definida.",
+       "Incorreta: há perda; não se sabe a quantidade de cada produto.",
+       "Incorreta, pois a decomposição só é permitida a partir da 3FN."],
+  c: "d",
+  estudo: "Decomposição sem perda (Aula 5). Reveja por que as tabelas precisam manter PKs e FKs que permitam reuni-las por junção." },
+
+{ nivel: "avancado", tema: "Decomposição e chaves",
+  enun: ["RESERVA(num_quarto, data_entrada, id_hospede, nome_hospede, tipo_quarto, valor_diaria). Regras: um quarto tem uma reserva por data de entrada; o quarto define o tipo; o tipo define o valor da diária.",
+         "A análise correta é:"],
+  op: ["Chave id_hospede; tipo_quarto depende do hóspede, o que viola a 1FN da tabela.",
+       "Chave num_quarto; a tabela atende à 3FN, pois não possui chave primária composta.",
+       "Chave (num_quarto, data); valor_diaria depende só da data, o que viola a 2FN.",
+       "Chave (num_quarto, data); nome_hospede depende só do quarto, o que viola a 2FN.",
+       "Chave (num_quarto, data); tipo depende do quarto (2FN) e a diária, do tipo (3FN)."],
+  c: "e",
+  estudo: "Identificação da chave e das dependências parciais e transitivas (Aula 5). Reveja como partir das regras do negócio para escrever as dependências." },
+
+{ nivel: "avancado", tema: "Decomposição e chaves",
+  enun: ["No mini-desafio da MATRÍCULA, adotou-se a regra de que cada disciplina tem um professor. A coordenação muda a regra: a mesma disciplina pode ter professores diferentes a cada semestre.",
+         "A estrutura adequada para a nova regra é:"],
+  op: ["Manter id_professor em DISCIPLINA e apagar o professor anterior a cada novo semestre.",
+       "Guardar em DISCIPLINA uma coluna com a lista de professores e os semestres de cada um.",
+       "Criar TURMA(id_turma, id_disciplina FK, semestre, id_professor FK), ligada à matrícula.",
+       "Mover id_professor para ALUNO, pois cada aluno escolhe o professor de cada semestre.",
+       "Manter a estrutura, pois as dependências funcionais não mudam quando a regra muda."],
+  c: "c",
+  estudo: "Regra de negócio e decomposição (notas do gabarito da Aula 5). Reveja a sugestão de TURMA ou OFERTA_DISCIPLINA para professor e semestre." }
+];
+
+/* ============================================================
+   LÓGICA DO QUESTIONÁRIO
+   ============================================================ */
+var LETRAS = ["a", "b", "c", "d", "e"];
+/* Cole entre as aspas a "URL do app da Web" gerada pelo Apps Script da planilha (termina em /exec).
+   Com a URL preenchida, o resultado é enviado automaticamente ao professor ao finalizar.
+   Vazia, a página apenas oferece o download do relatório. */
+var URL_ENVIO = "https://script.google.com/macros/s/AKfycbxBus0NaKf5HkAUNwyBRDueFkdj_oo0GJTNuDmWOabpUksFSHd4cKaGIhMHshTp05Tu/exec";
+var NIVEIS = { basico: "Básico", intermediario: "Intermediário", avancado: "Avançado" };
+var ORDEM_NIVEL = ["basico", "intermediario", "avancado"];
+var SORTEIO = 20; /* quantidade de questões sorteadas do banco para cada aluno */
+var CHAVE = "bdn_revisao_v1";
+var CHAVE_N = "bdn_revisao_v1_tentativas";
+var app = document.getElementById("app");
+var S = carregar();
+
+function carregar() {
+  try {
+    var t = localStorage.getItem(CHAVE);
+    if (t) {
+      var s = JSON.parse(t);
+      /* sessões iniciadas em versão anterior da página: completa os campos de tempo */
+      ["t", "dur", "exp"].forEach(function (k) { if (!s[k]) s[k] = s.ord.map(function () { return k === "exp" ? false : null; }); });
+      return s;
+    }
+  } catch (e) {}
+  return null;
+}
+function salvar() { try { localStorage.setItem(CHAVE, JSON.stringify(S)); } catch (e) {} }
+function numTentativaGeral(incrementar) {
+  var n = 0;
+  try { n = parseInt(localStorage.getItem(CHAVE_N) || "0", 10) || 0; } catch (e) {}
+  if (incrementar) { n++; try { localStorage.setItem(CHAVE_N, String(n)); } catch (e) {} }
+  return n;
+}
+function el(tag, attrs, filhos) {
+  var e = document.createElement(tag);
+  if (attrs) for (var k in attrs) {
+    if (k === "text") e.textContent = attrs[k];
+    else if (k === "onclick") e.onclick = attrs[k];
+    else e.setAttribute(k, attrs[k]);
+  }
+  (filhos || []).forEach(function (f) { if (f) e.appendChild(f); });
+  return e;
+}
+function p2(n) { return (n < 10 ? "0" : "") + n; }
+function fData(ms) { var d = new Date(ms); return p2(d.getDate()) + "/" + p2(d.getMonth() + 1) + "/" + d.getFullYear(); }
+function fHora(ms) { var d = new Date(ms); return p2(d.getHours()) + ":" + p2(d.getMinutes()) + ":" + p2(d.getSeconds()); }
+function fDur(ms) { var s = Math.round(ms / 1000); return p2(Math.floor(s / 3600)) + ":" + p2(Math.floor(s % 3600 / 60)) + ":" + p2(s % 60); }
+function QQ(i) { return QUESTOES[S.ord[i]]; }
+function resolvida(i) { var t = S.q[i]; return t.length > 0 && t[t.length - 1] === QQ(i).c; }
+function acertoPrimeira(i) { return S.q[i][0] === QQ(i).c; }
+function pontos() { var n = 0; for (var i = 0; i < S.ord.length; i++) if (acertoPrimeira(i)) n++; return n; }
+function embaralhar(a) {
+  for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; }
+  return a;
+}
+/* Todas as questões, em ordem aleatória (diferente para cada aluno). */
+function sortear() { return embaralhar(QUESTOES.map(function (_, i) { return i; })); }
+function selo(nv) { return el("span", { "class": "nv " + nv, text: "Nível " + NIVEIS[nv].toLowerCase() }); }
+function siglaNivel(nv) { return nv === "basico" ? "B" : nv === "intermediario" ? "I" : "A"; }
+function porNivel() {
+  var r = {}; ORDEM_NIVEL.forEach(function (nv) { r[nv] = [0, 0]; });
+  S.ord.forEach(function (_, i) { var nv = QQ(i).nivel; r[nv][1]++; if (acertoPrimeira(i)) r[nv][0]++; });
+  return r;
+}
+function resumoNiveis() { var r = porNivel(); return ORDEM_NIVEL.map(function (nv) { return NIVEIS[nv] + " " + r[nv][0] + "/" + r[nv][1]; }).join(" · "); }
+
+var idxNaTela = -1;
+function render() {
+  if (relogio) { clearInterval(relogio); relogio = null; }
+  app.innerHTML = "";
+  if (!S) return telaInicio();
+  if (S.fim) return telaFim();
+  telaQuestao();
+  if (idxNaTela !== S.idx) window.scrollTo(0, 0);   /* só volta ao topo ao trocar de questão */
+  idxNaTela = S.idx;
+}
+
+function telaInicio() {
+  var nome = el("input", { type: "text", id: "nome", autocomplete: "name", maxlength: "120" });
+  var ra = el("input", { type: "text", id: "ra", inputmode: "numeric", maxlength: "20" });
+  var erro = el("div", { "class": "erro", role: "alert" });
+  app.appendChild(el("p", { text: "Identifique-se para iniciar. O horário de início é registrado ao clicar em \"Iniciar\" e o de término, ao finalizar a última questão." }));
+  app.appendChild(el("label", { "class": "field", "for": "nome", text: "Nome completo" }));
+  app.appendChild(nome);
+  app.appendChild(el("label", { "class": "field", "for": "ra", text: "RA" }));
+  app.appendChild(ra);
+  app.appendChild(erro);
+  app.appendChild(el("p", { "class": "nota", text: "São 20 questões objetivas sobre normalização, sem limite de tempo: as alternativas ficam liberadas desde a abertura de cada questão e você responde no seu ritmo. As questões aparecem em ordem aleatória, e cada uma indica o seu nível: básico, intermediário ou avançado. A pontuação considera os acertos na primeira tentativa. Em caso de erro, você recebe a indicação do assunto a estudar e pode tentar novamente; todas as tentativas são registradas. Ao final, " + (URL_ENVIO ? "o resultado é enviado automaticamente ao professor; mantenha a conexão com a internet." : "é gerado um relatório em arquivo .html que deve ser enviado ao professor.") }));
+  app.appendChild(el("div", { "class": "legenda" }, ORDEM_NIVEL.map(selo)));
+  app.appendChild(el("div", { "class": "actions" }, [el("button", { text: "Iniciar", onclick: function () {
+    var n = nome.value.replace(/\s+/g, " ").trim(), r = ra.value.trim();
+    if (n.split(" ").length < 2 || n.length < 5) { erro.textContent = "Informe o nome completo (nome e sobrenome)."; return; }
+    if (r.length < 3) { erro.textContent = "Informe o RA."; return; }
+    var ord = sortear();
+    S = { nome: n, ra: r, inicio: Date.now(), fim: null, idx: 0, geral: numTentativaGeral(true),
+          id: Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 10), envio: null,
+          ord: ord, q: ord.map(function () { return []; }),
+          t: ord.map(function () { return null; }), dur: ord.map(function () { return null; }), exp: ord.map(function () { return false; }) };
+    salvar(); render();
+  } })]));
+}
+
+var relogio = null;
+function segundos(i) { return (Date.now() - S.t[i]) / 1000; }
+function tempoQ(i) { return S.dur[i] == null ? "-" : Math.round(S.dur[i] / 1000) + " s"; }
+
+function telaQuestao() {
+  var i = S.idx, Q = QQ(i), total = S.ord.length, tent = S.q[i], ok = resolvida(i), ultima = i === total - 1;
+  if (!S.t[i]) { S.t[i] = Date.now(); salvar(); }           /* o relógio da questão começa quando ela é aberta */
+  var fechada = ok;
+
+  app.appendChild(el("div", { "class": "meta" }, [
+    el("span", { text: "Questão " + (i + 1) + " de " + total }),
+    el("span", { text: S.nome + " · RA " + S.ra })
+  ]));
+  var barra = el("div", { "class": "bar" }, [el("div")]);
+  barra.firstChild.style.width = (i / total * 100) + "%";
+  app.appendChild(barra);
+
+  app.appendChild(el("div", { "class": "nivelrow" }, [selo(Q.nivel), el("div", { "class": "tema", text: Q.tema })]));
+  app.appendChild(el("div", { "class": "enun" }, Q.enun.map(function (t) { return el("p", { text: t }); })));
+
+  var grupo = el("div", { role: "radiogroup" });
+  var btnConf = el("button", { text: "Confirmar resposta" });
+  btnConf.disabled = true;
+  Q.op.forEach(function (texto, k) {
+    var letra = LETRAS[k], jaErrou = tent.indexOf(letra) >= 0 && letra !== Q.c;
+    var inp = el("input", { type: "radio", name: "op", value: letra, id: "op" + k });
+    if (fechada || jaErrou) inp.disabled = true;
+    if (ok && letra === Q.c) inp.checked = true;
+    inp.onchange = function () { btnConf.disabled = false; };
+    var cls = "opt" + (jaErrou ? " errada" : "") + (ok && letra === Q.c ? " certa" : "");
+    grupo.appendChild(el("label", { "class": cls, "for": "op" + k }, [inp, el("span", { text: "(" + letra + ") " + texto })]));
+  });
+  app.appendChild(grupo);
+
+  if (ok) {
+    app.appendChild(el("div", { "class": "fb ok", role: "status" }, [
+      el("strong", { "class": "t", text: "Resposta correta." }),
+      el("span", { text: tent.length === 1 ? "Acerto na primeira tentativa." : "Acerto na " + tent.length + "ª tentativa (não pontua, pois houve erro anterior)." })
+    ]));
+  } else if (tent.length > 0) {
+    app.appendChild(el("div", { "class": "fb bad", role: "alert" }, [
+      el("strong", { "class": "t", text: "Resposta incorreta. Tentativas nesta questão: " + tent.length + "." }),
+      el("span", { text: "Assunto para estudar: " + Q.tema + ". " + Q.estudo + " Você pode tentar novamente." })
+    ]));
+  }
+
+  btnConf.onclick = function () {
+    var m = grupo.querySelector("input:checked");
+    if (!m) return;
+    tent.push(m.value);
+    if (m.value === Q.c) S.dur[i] = Date.now() - S.t[i];
+    salvar(); render();
+  };
+  var avancar = el("button", { "class": fechada ? "" : "sec", text: ultima ? "Finalizar questionário" : "Próxima questão", onclick: function () {
+    if (S.dur[i] == null) S.dur[i] = Date.now() - S.t[i];
+    if (ultima) { S.fim = Date.now(); salvar(); render(); if (!URL_ENVIO) baixarRelatorio(); }
+    else { S.idx++; salvar(); render(); }
+  } });
+  var botoes = [];
+  if (!fechada) { btnConf.textContent = tent.length ? "Tentar novamente" : "Confirmar resposta"; botoes.push(btnConf); }
+  if (fechada || tent.length > 0) botoes.push(avancar);
+  app.appendChild(el("div", { "class": "actions" }, botoes));
+
+}
+
+function resultadoTexto(i) {
+  if (acertoPrimeira(i)) return "ACERTOU na 1ª tentativa";
+  if (resolvida(i)) return "ERROU; acertou na " + S.q[i].length + "ª tentativa";
+  return "ERROU; não chegou à resposta correta";
+}
+
+function telaFim() {
+  var pts = pontos(), total = S.ord.length;
+  app.appendChild(el("div", { "class": "tema", text: "Resultado final" }));
+  app.appendChild(el("div", { "class": "score", text: pts + " / " + total + "  (" + Math.round(pts / total * 100) + "%)" }));
+  app.appendChild(el("p", { text: S.nome + " · RA " + S.ra }));
+  app.appendChild(el("p", { text: "Acertos por nível: " + resumoNiveis() }));
+  app.appendChild(el("p", { "class": "nota", text: "Data: " + fData(S.inicio) + " · Início: " + fHora(S.inicio) + " · Término: " + fHora(S.fim) + " · Duração: " + fDur(S.fim - S.inicio) + " · Realização nº " + S.geral + " neste navegador" }));
+
+  var tb = el("tbody");
+  S.ord.forEach(function (_, i) {
+    var Q = QQ(i), okp = acertoPrimeira(i);
+    tb.appendChild(el("tr", null, [
+      el("td", { text: String(i + 1) }), el("td", null, [selo(Q.nivel)]), el("td", { text: Q.tema }),
+      el("td", { text: String(S.q[i].length) }),
+      el("td", { "class": okp ? "ok" : "bad", text: okp ? "Acertou" : (resolvida(i) ? "Errou (acertou depois)" : "Errou") })
+    ]));
+  });
+  app.appendChild(el("div", { "class": "tw" }, [el("table", null, [
+    el("thead", null, [el("tr", null, [el("th", { text: "Nº" }), el("th", { text: "Nível" }), el("th", { text: "Assunto" }), el("th", { text: "Tentativas" }), el("th", { text: "Resultado" })])]), tb
+  ])]));
+
+  var erradas = S.ord.map(function (_, i) { return i; }).filter(function (i) { return !acertoPrimeira(i); });
+  if (erradas.length) {
+    app.appendChild(el("h3", { text: "Assuntos para estudar" }));
+    app.appendChild(el("ul", { "class": "est" }, erradas.map(function (i) {
+      return el("li", { text: "Questão " + (i + 1) + " — " + QQ(i).tema + ": " + QQ(i).estudo });
+    })));
+  } else {
+    app.appendChild(el("p", { text: "Todas as questões foram respondidas corretamente na primeira tentativa." }));
+  }
+
+  app.appendChild(el("div", { "class": "actions" }, [
+    el("button", { text: "Baixar relatório (.html)", onclick: baixarRelatorio }),
+    el("button", { "class": "sec", text: "Refazer o questionário", onclick: function () {
+      S = null; try { localStorage.removeItem(CHAVE); } catch (e) {} render();
+    } })
+  ]));
+  if (URL_ENVIO) {
+    app.appendChild(el("div", { id: "envio", role: "status" }));
+    app.appendChild(el("p", { "class": "nota", text: "O relatório em .html é apenas o seu comprovante; o resultado válido é o registrado pelo professor." }));
+    statusEnvio();
+    if (S.envio !== "ok") enviar();
+  } else {
+    app.appendChild(el("p", { "class": "nota", text: "Envie o arquivo .html baixado ao professor. Se o download não iniciar automaticamente, use o botão acima." }));
+  }
+}
+
+/* ---------- Envio automático do resultado ao professor ---------- */
+var enviando = false;
+function statusEnvio() {
+  var d = document.getElementById("envio");
+  if (!d) return;
+  d.innerHTML = "";
+  if (S.envio === "ok") {
+    d.className = "fb ok";
+    d.appendChild(el("strong", { "class": "t", text: "Resultado enviado ao professor." }));
+    d.appendChild(el("span", { text: "Registro confirmado. Você já pode fechar esta página." }));
+  } else if (enviando) {
+    d.className = "fb";
+    d.appendChild(el("strong", { "class": "t", text: "Enviando o resultado ao professor…" }));
+    d.appendChild(el("span", { text: "Não feche esta página." }));
+  } else {
+    d.className = "fb bad";
+    d.appendChild(el("strong", { "class": "t", text: "Não foi possível enviar o resultado." }));
+    d.appendChild(el("span", { text: "Verifique a conexão com a internet e tente novamente. Não feche esta página nem refaça o questionário antes de enviar. Se o problema persistir, baixe o relatório e entregue-o ao professor." }));
+    d.appendChild(el("div", { "class": "actions" }, [el("button", { text: "Tentar enviar novamente", onclick: enviar })]));
+  }
+}
+function dadosEnvio() {
+  var pts = pontos(), total = S.ord.length, temas = {}, det = [];
+  S.ord.forEach(function (_, i) {
+    var Q = QQ(i);
+    if (!acertoPrimeira(i)) temas[Q.tema] = (temas[Q.tema] || 0) + 1;
+    det.push("P" + p2(i + 1) + "=Q" + p2(S.ord[i] + 1) + siglaNivel(Q.nivel) + "[" + S.q[i].join(",") + "]" + (acertoPrimeira(i) ? "ok" : (resolvida(i) ? "errou;acertou na " + S.q[i].length + "a" : "errou")) + "(" + tempoQ(i).replace(" ", "") + ")");
+  });
+  return {
+    id: S.id, disciplina: SIGLA, nome: S.nome, ra: S.ra, data: fData(S.inicio),
+    inicio: fData(S.inicio) + " " + fHora(S.inicio), termino: fData(S.fim) + " " + fHora(S.fim),
+    duracao: fDur(S.fim - S.inicio), realizacao: S.geral, pontos: pts, total: total,
+    percentual: Math.round(pts / total * 100) + "%",
+    tentativas: S.q.reduce(function (a, t) { return a + t.length; }, 0),
+    reforcar: Object.keys(temas).map(function (k) { return k + " (" + temas[k] + ")"; }).join("; ") || "Nenhum",
+    detalhe: "Níveis: " + resumoNiveis() + " | " + det.join(" | "), codigo: codigoVerificacao()
+  };
+}
+function enviar() {
+  if (enviando || !URL_ENVIO || S.envio === "ok") return;
+  enviando = true; statusEnvio();
+  /* text/plain evita a verificação prévia (preflight) que o Apps Script não atende. */
+  fetch(URL_ENVIO, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(dadosEnvio()), redirect: "follow" })
+    .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+    .then(function (j) { if (!j || !j.ok) throw new Error((j && j.erro) || "resposta inválida"); S.envio = "ok"; salvar(); })
+    .catch(function () { S.envio = "erro"; salvar(); })
+    .then(function () { enviando = false; statusEnvio(); });
+}
+function codigoVerificacao() {
+  var base = [S.nome, S.ra, S.inicio, S.fim, S.geral, pontos(), S.ord.join("."), S.q.map(function (t) { return t.join(""); }).join("|")].join("#");
+  return hash("BDN#" + base) + "-" + hash(base + "#UNA");
+}
+
+function hash(str) {
+  var h = 2166136261;
+  for (var i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return ("0000000" + (h >>> 0).toString(16)).slice(-8).toUpperCase();
+}
+
+function esc(t) { return String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
+
+function gerarRelatorio() {
+  var pts = pontos(), total = S.ord.length;
+  var tentTotal = S.q.reduce(function (a, t) { return a + t.length; }, 0);
+  var codigo = codigoVerificacao();
+  var linhas = "", temas = {};
+  S.ord.forEach(function (_, i) {
+    var Q = QQ(i), okp = acertoPrimeira(i);
+    if (!okp) temas[Q.tema] = (temas[Q.tema] || 0) + 1;
+    linhas += "<tr><td>" + (i + 1) + "</td><td>Q" + p2(S.ord[i] + 1) + "</td><td>" + NIVEIS[Q.nivel] + "</td><td>" + esc(Q.tema) + "</td><td>" + S.q[i].length + "</td><td>" + tempoQ(i) +
+      "</td><td>" + esc(S.q[i].join(", ") || "-") + "</td><td>" + Q.c + "</td><td class='" + (okp ? "ok" : "bad") + "'>" + esc(resultadoTexto(i)) + "</td></tr>";
+  });
+  var ks = Object.keys(temas);
+  var reforco = ks.length ? "<ul>" + ks.map(function (k) { return "<li>" + esc(k) + " — " + temas[k] + " questão(ões) com erro</li>"; }).join("") + "</ul>" : "<p>Nenhum.</p>";
+  function dado(r, v) { return "<tr><th>" + r + "</th><td>" + esc(v) + "</td></tr>"; }
+  return "<!DOCTYPE html>\n<html lang='pt-BR'><head><meta charset='UTF-8'><meta name='viewport' content='width=device-width, initial-scale=1'>" +
+    "<title>Relatório — " + esc(S.nome) + " — RA " + esc(S.ra) + "</title><style>" +
+    "body{font:15px/1.5 Georgia,'Times New Roman',serif;color:#1c2330;background:#fff;max-width:900px;margin:0 auto;padding:24px 16px}" +
+    "h1{font-size:1.3rem;border-bottom:2px solid #1f4e8c;padding-bottom:8px}h2{font-size:1.05rem;margin-top:26px}" +
+    "table{border-collapse:collapse;width:100%}th,td{text-align:left;padding:6px 8px;border-bottom:1px solid #d9dde4;vertical-align:top}" +
+    "table.d th{width:190px}.nota{font-size:1.8rem;font-weight:bold;color:#1f4e8c}.ok{color:#17703b;font-weight:bold}.bad{color:#a32020;font-weight:bold}" +
+    ".w{overflow-x:auto}.cod{font-family:monospace;color:#5b6575;margin-top:24px}@media print{body{padding:0}}" +
+    "</style></head><body>" +
+    "<h1>Relatório de Revisão — " + esc(DISCIPLINA) + "</h1>" +
+    "<p class='nota'>" + pts + " / " + total + " (" + Math.round(pts / total * 100) + "%)</p>" +
+    "<table class='d'>" +
+    dado("Nome completo", S.nome) + dado("RA", S.ra) + dado("Data", fData(S.inicio)) +
+    dado("Início", fData(S.inicio) + " " + fHora(S.inicio)) + dado("Término", fData(S.fim) + " " + fHora(S.fim)) +
+    dado("Duração", fDur(S.fim - S.inicio)) + dado("Realização nº", S.geral + " (neste navegador)") +
+    dado("Pontuação", pts + " / " + total + " — acertos na 1ª tentativa") +
+    dado("Total de tentativas", tentTotal + " (em " + total + " questões)") +
+    dado("Acertos por nível", resumoNiveis()) +
+    dado("Questões", total + ", em ordem aleatória") +
+    "</table>" +
+    "<h2>Detalhamento por questão</h2>" +
+    "<div class='w'><table><thead><tr><th>Posição</th><th>Banco</th><th>Nível</th><th>Assunto</th><th>Tentativas</th><th>Tempo</th><th>Respostas</th><th>Gabarito</th><th>Resultado</th></tr></thead><tbody>" +
+    linhas + "</tbody></table></div>" +
+    "<p><small>Posição = ordem em que a questão apareceu para o aluno; Banco = número da questão no banco.</small></p>" +
+    "<h2>Assuntos a reforçar</h2>" + reforco +
+    "<p class='cod'>Código de verificação: " + codigo + "</p></body></html>";
+}
+
+function baixarRelatorio() {
+  var blob = new Blob([gerarRelatorio()], { type: "text/html;charset=utf-8" });
+  var a = document.createElement("a");
+  var nome = S.nome.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^A-Za-z0-9]+/g, "_");
+  a.href = URL.createObjectURL(blob);
+  a.download = "BDN_revisao_RA" + S.ra.replace(/[^A-Za-z0-9]+/g, "") + "_" + nome + ".html";
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
+}
+
+render();
+</script>
+</body>
+</html>
