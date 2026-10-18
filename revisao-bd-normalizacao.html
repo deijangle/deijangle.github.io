@@ -310,7 +310,40 @@ var QUESTOES = [
        "Mover id_professor para ALUNO, pois cada aluno escolhe o professor de cada semestre.",
        "Manter a estrutura, pois as dependências funcionais não mudam quando a regra muda."],
   c: "c",
-  estudo: "Regra de negócio e decomposição (notas do gabarito da Aula 5). Reveja a sugestão de TURMA ou OFERTA_DISCIPLINA para professor e semestre." }
+  estudo: "Regra de negócio e decomposição (notas do gabarito da Aula 5). Reveja a sugestão de TURMA ou OFERTA_DISCIPLINA para professor e semestre." },
+
+{ nivel: "basico", tema: "Normalização: conceitos e anomalias",
+  enun: ["Conforme discutimos em sala, um grupo terminou o DER e converteu as entidades em tabelas, com suas PKs e FKs. Antes de criar essas tabelas no SGBD, ainda falta uma etapa.",
+         "Depois de qual processo o grupo pode iniciar a criação do banco de dados?"],
+  op: ["Depois de inserir os primeiros dados de teste, para descobrir na prática quais colunas faltam.",
+       "Depois de normalizar as tabelas até a 3FN, eliminando listas e dependências indevidas.",
+       "Depois de reunir todos os dados em uma única tabela, para facilitar as consultas futuras.",
+       "Depois de definir os índices de cada coluna, pois a normalização é feita só após o SQL.",
+       "Depois de aplicar somente a 1FN, pois a 2FN e a 3FN são opcionais em bancos relacionais."],
+  c: "b",
+  estudo: "Sequência da modelagem (Aulas 4 e 5). Reveja o caminho modelo conceitual → modelo lógico → normalização → SQL e o que cada forma normal elimina." },
+
+{ nivel: "intermediario", tema: "Normalização: conceitos e anomalias",
+  enun: ["Conforme discutimos em sala, um grupo quer criar agora, no SGBD, as tabelas PEDIDO(id_pedido PK, data, id_cliente FK, nome_cliente, cidade_cliente) e ITEM(id_pedido PK/FK, id_produto PK/FK, nome_produto, quantidade).",
+         "O grupo já pode iniciar a criação do banco de dados?"],
+  op: ["Sim, pois todas as tabelas já possuem chave primária e as FKs estão definidas corretamente.",
+       "Sim, pois os problemas de repetição podem ser corrigidos depois, com os dados já inseridos.",
+       "Não; basta mover nome_produto para PEDIDO e manter os dados do cliente onde estão.",
+       "Não; é preciso criar PRODUTO e CLIENTE, eliminando a dependência parcial e a transitiva.",
+       "Não; é preciso juntar PEDIDO e ITEM em uma só tabela, para evitar o uso de FKs."],
+  c: "d",
+  estudo: "Normalização antes da implementação (Aula 5). Reveja como identificar dependências parciais (2FN) e transitivas (3FN) e para quais tabelas os atributos devem ser movidos." },
+
+{ nivel: "avancado", tema: "Decomposição e chaves",
+  enun: ["Conforme discutimos em sala, antes de implementar, o grupo revisou o modelo do delivery e montou cinco propostas.",
+         "Qual conjunto está pronto para ser criado no SGBD, por já estar na 3FN?"],
+  op: ["CLIENTE(id_cliente PK, nome, cidade); PEDIDO(id_pedido PK, data, id_cliente FK, cidade_cliente); ITEM(id_pedido PK/FK, id_produto PK/FK, qtd).",
+       "CLIENTE(id_cliente PK, nome, telefones em lista); PEDIDO(id_pedido PK, data, id_cliente FK); ITEM(id_pedido PK/FK, id_produto PK/FK, qtd).",
+       "CLIENTE(id_cliente PK, nome, cidade); PEDIDO(id_pedido PK, data, id_cliente FK); ITEM(id_pedido PK/FK, id_produto PK/FK, qtd).",
+       "CLIENTE(id_cliente PK, nome, cidade); PEDIDO(id_pedido PK, data, id_cliente FK); ITEM(id_pedido PK/FK, id_produto PK/FK, nome_produto, qtd).",
+       "CLIENTE(id_cliente PK, nome, cidade); PEDIDO(id_pedido PK, data, produtos em lista); ITEM(id_pedido PK/FK, id_produto PK/FK, qtd)."],
+  c: "c",
+  estudo: "Revisão do modelo até a 3FN (Aula 5). Use o checklist da aula: cada célula guarda um único valor? Todo atributo depende da chave inteira? Algum atributo não chave determina outro?" }
 ];
 
 /* ============================================================
@@ -411,7 +444,7 @@ function telaInicio() {
   app.appendChild(el("label", { "class": "field", "for": "ra", text: "RA" }));
   app.appendChild(ra);
   app.appendChild(erro);
-  app.appendChild(el("p", { "class": "nota", text: "São 10 questões objetivas sobre normalização, sorteadas de um banco de 20 e diferentes para cada aluno, sem limite de tempo: as alternativas ficam liberadas desde a abertura de cada questão e você responde no seu ritmo. As questões aparecem em ordem aleatória, e cada uma indica o seu nível: básico, intermediário ou avançado. A pontuação considera os acertos na primeira tentativa. Em caso de erro, você recebe a indicação do assunto a estudar e pode tentar novamente; todas as tentativas são registradas. Ao final, " + (URL_ENVIO ? "o resultado é enviado automaticamente ao professor; mantenha a conexão com a internet." : "é gerado um relatório em arquivo .html que deve ser enviado ao professor.") }));
+  app.appendChild(el("p", { "class": "nota", text: "São 10 questões objetivas sobre normalização, sorteadas de um banco de " + QUESTOES.length + " e diferentes para cada aluno, sem limite de tempo: as alternativas ficam liberadas desde a abertura de cada questão e você responde no seu ritmo. As questões aparecem em ordem aleatória, e cada uma indica o seu nível: básico, intermediário ou avançado. A pontuação considera os acertos na primeira tentativa. Em caso de erro, você recebe a indicação do assunto a estudar e pode tentar novamente; todas as tentativas são registradas. Ao final, " + (URL_ENVIO ? "o resultado é enviado automaticamente ao professor; mantenha a conexão com a internet." : "é gerado um relatório em arquivo .html que deve ser enviado ao professor.") }));
   app.appendChild(el("div", { "class": "legenda" }, ORDEM_NIVEL.map(selo)));
   app.appendChild(el("div", { "class": "actions" }, [el("button", { text: "Iniciar", onclick: function () {
     var n = nome.value.replace(/\s+/g, " ").trim(), r = ra.value.trim();
