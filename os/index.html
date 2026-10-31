@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Ordem de Serviço – Folha de imposição</title>
+<style>
+  :root{
+    --bg:#f4f5f7; --card:#fff; --ink:#1b1f24; --muted:#5f6b7a; --line:#e3e6ea;
+    --accent:#0b5cad; --ok:#1e7a46; --warn:#a15c00;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --bg:#111418; --card:#1a1f25; --ink:#e8ecf1; --muted:#9aa6b4; --line:#2a313a; --accent:#5ea3ef; }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+       font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+  main{max-width:640px;margin:0 auto;padding:20px 16px 40px}
+  header{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+  .badge{background:var(--accent);color:#fff;border-radius:10px;padding:8px 12px;
+         font-weight:700;letter-spacing:.5px;font-size:14px}
+  h1{font-size:20px;margin:0}
+  .sub{color:var(--muted);font-size:14px;margin:2px 0 0}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;
+        padding:16px;margin-bottom:14px}
+  .os{font-size:34px;font-weight:800;letter-spacing:.5px;word-break:break-all}
+  .label{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .val{font-size:20px;font-weight:600}
+  ol{margin:6px 0 0;padding-left:22px}
+  ol li{padding:8px 0;border-bottom:1px solid var(--line);word-break:break-all}
+  ol li:last-child{border-bottom:0}
+  .count{float:right;color:var(--muted);font-size:13px;font-weight:400;text-transform:none;letter-spacing:0}
+  dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:6px 14px}
+  dt{color:var(--muted)} dd{margin:0;word-break:break-all}
+  .empty{color:var(--warn)}
+  footer{color:var(--muted);font-size:12px;text-align:center;margin-top:18px}
+  button{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--ink);
+         border-radius:10px;padding:10px 14px;cursor:pointer}
+  .actions{display:flex;gap:10px;justify-content:center;margin-top:6px}
+  @media print{ body{background:#fff} .actions{display:none} .card{break-inside:avoid} }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="badge">OS</div>
+    <div>
+      <h1>Folha de imposição</h1>
+      <p class="sub" id="sub">Dados lidos do QR code impresso na folha</p>
+    </div>
+  </header>
+
+  <section class="card">
+    <div class="label">Ordem de Serviço</div>
+    <div class="os" id="os">—</div>
+  </section>
+
+  <section class="card grid">
+    <div><div class="label">Data</div><div class="val" id="data">—</div></div>
+    <div><div class="label">Hora</div><div class="val" id="hora">—</div></div>
+  </section>
+
+  <section class="card">
+    <div class="label">Arquivos nesta imposição <span class="count" id="count"></span></div>
+    <ol id="files"></ol>
+  </section>
+
+  <section class="card" id="extras-card" hidden>
+    <div class="label">Outros dados</div>
+    <dl id="extras"></dl>
+  </section>
+
+  <div class="actions">
+    <button type="button" onclick="window.print()">Imprimir</button>
+    <button type="button" id="copy">Copiar dados</button>
+  </div>
+  <footer>Databrand · Projeto PHOENIX</footer>
+</main>
+
+<script>
+(function () {
+  // Parâmetros aceitos (curtos para manter o QR pequeno):
+  //   os = número da OS      d = data (AAAA-MM-DD ou DD/MM/AAAA)
+  //   h  = hora (HH:MM[:SS])  f = arquivos, separados por vírgula, ponto e vírgula, | ou quebra de linha
+  // Qualquer outro parâmetro aparece em "Outros dados".
+  var raw = location.search.replace(/^\?/, '');
+  var params = {};
+  raw.split('&').forEach(function (pair) {
+    if (!pair) return;
+    var i = pair.indexOf('=');
+    var k = i < 0 ? pair : pair.slice(0, i);
+    var v = i < 0 ? '' : pair.slice(i + 1);
+    try { k = decodeURIComponent(k.replace(/\+/g, ' ')); } catch (e) {}
+    try { v = decodeURIComponent(v.replace(/\+/g, ' ')); } catch (e) {}
+    k = k.trim().toLowerCase();
+    params[k] = v.trim();
+  });
+
+  function pick() {
+    for (var i = 0; i < arguments.length; i++) {
+      var k = arguments[i];
+      if (params[k] !== undefined && params[k] !== '') { var v = params[k]; delete params[k]; return v; }
+      delete params[k];
+    }
+    return '';
+  }
+
+  var os   = pick('os', 'ordem', 'job');
+  var data = pick('d', 'data', 'date');
+  var hora = pick('h', 'hora', 'time');
+  var arqs = pick('f', 'arquivos', 'files');
+
+  // Data ISO (2026-10-31) -> 31/10/2026
+  var m = data.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) data = m[3] + '/' + m[2] + '/' + m[1];
+
+  function setText(id, txt) {
+    var el = document.getElementById(id);
+    if (txt) { el.textContent = txt; }
+    else { el.textContent = 'não informado'; el.classList.add('empty'); }
+  }
+  setText('os', os);
+  setText('data', data);
+  setText('hora', hora);
+  if (os) document.title = 'OS ' + os + ' – Folha de imposição';
+
+  var list = arqs.split(/[,;|\n]+/).map(function (s) { return s.trim(); }).filter(Boolean);
+  var ol = document.getElementById('files');
+  if (list.length) {
+    list.forEach(function (name) {
+      var li = document.createElement('li');
+      li.textContent = name;
+      ol.appendChild(li);
+    });
+    document.getElementById('count').textContent = list.length + (list.length === 1 ? ' arquivo' : ' arquivos');
+  } else {
+    var li = document.createElement('li');
+    li.textContent = 'nenhum arquivo informado';
+    li.className = 'empty';
+    ol.appendChild(li);
+  }
+
+  var keys = Object.keys(params);
+  if (keys.length) {
+    var dl = document.getElementById('extras');
+    keys.forEach(function (k) {
+      var dt = document.createElement('dt'); dt.textContent = k;
+      var dd = document.createElement('dd'); dd.textContent = params[k] || '—';
+      dl.appendChild(dt); dl.appendChild(dd);
+    });
+    document.getElementById('extras-card').hidden = false;
+  }
+
+  document.getElementById('copy').addEventListener('click', function () {
+    var txt = 'OS: ' + (os || '-') + '\nData: ' + (data || '-') + '\nHora: ' + (hora || '-') +
+              '\nArquivos:\n' + (list.length ? list.map(function (n, i) { return (i + 1) + '. ' + n; }).join('\n') : '-');
+    var btn = this;
+    function done() { btn.textContent = 'Copiado!'; setTimeout(function () { btn.textContent = 'Copiar dados'; }, 1500); }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(txt).then(done, function () { window.prompt('Copie os dados:', txt); });
+    } else { window.prompt('Copie os dados:', txt); }
+  });
+})();
+</script>
+</body>
+</html>
